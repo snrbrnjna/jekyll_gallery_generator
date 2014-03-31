@@ -1,3 +1,5 @@
 .DS_Site
 
+bower_components
+
 _site
