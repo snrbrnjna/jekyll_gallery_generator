@@ -1,5 +1,7 @@
 .DS_Site
+.tmp
 
 bower_components
+node_modules
 
 _site

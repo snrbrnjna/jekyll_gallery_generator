@@ -1,0 +1,22 @@
+{
+  "name": "maiwolf.com",
+  "version": "0.0.0",
+  "authors": [
+    "Snr Brnjna <snr@brnjna.net>"
+  ],
+  "license": "MIT",
+  "homepage": "http://maiwolf.com",
+  "private": true,
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ],
+  "dependencies": {
+    "jquery": "~2.1.0",
+    "modernizr": "~2.7.2",
+    "normalize.css": "~3.0.1"
+  }
+}

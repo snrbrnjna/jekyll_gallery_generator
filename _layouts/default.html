@@ -11,12 +11,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
 
     <!-- Place favicon.ico and apple-touch-icon.png in the root directory -->
+
+    <!-- build:css /css/app.min.css -->
     <!-- h5bp normalize CSS -->
-    <link rel="stylesheet" href="/css/normalize.css">
+    <link rel="stylesheet" href="/bower_components/normalize.css/normalize.css">
     <!-- syntax highlighting CSS -->
     <link rel="stylesheet" href="/css/syntax.css">
     <!-- Custom CSS -->
     <link rel="stylesheet" href="/css/main.css">
+    <!-- endbuild -->
     <script src="/js/vendor/modernizr-2.6.2.min.js"></script>
 </head>
 <body>
@@ -36,9 +39,13 @@
         </div>
     </div>
 
-    <script src="/js/vendor/jquery.min.js"></script>
+    <!-- build:js /js/vendor/jquery.min.js -->
+    <script src="/bower_components/jquery/dist/jquery.min.js"></script>
+    <!-- endbuild -->
+    <!-- build:js /js/app.min.js -->
     <script src="/js/plugins.js"></script>
     <script src="/js/main.js"></script>
+    <!-- endbuild -->
 
 </body>
 </html>
