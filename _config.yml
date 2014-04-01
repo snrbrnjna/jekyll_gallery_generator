@@ -1,3 +1,10 @@
-name: Your New Jekyll Site
+name: MAIWOLF PHOTOGRAPHY
 markdown: redcarpet
 pygments: true
+
+exclude:
+  - Gemfile
+  - Gemfile.lock
+  - bower.json
+  - bower_components
+  - package.json
