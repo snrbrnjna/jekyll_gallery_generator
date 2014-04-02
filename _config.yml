@@ -9,3 +9,28 @@ exclude:
   - bower_components
   - package.json
   - node_modules
+
+gallery: 
+  src: 
+    basepath: img/_fullsizes
+  dst: 
+    basepath: img/_galleries
+    baseurl: /img/galleries
+  quality: 85
+  presets: 
+    thumb: 
+      width: 240
+    large_phones: 
+      width: 650
+    large_pads: 
+      width: 1024
+    large: 
+      width: 1400
+  opts: 
+    minColWidth: 
+      desktop: 320
+      pad: 320
+      phone: 300
+    gutterWidth: 3
+    chunkSize: 8
+    firstChunk: 15
