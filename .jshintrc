@@ -22,7 +22,8 @@
     "globals": {
         "define": false,
         "require": true,
-        "Modernizr": false
+        "Modernizr": false,
+        "GalleryApp": false
     },
     "sub": true
 }
