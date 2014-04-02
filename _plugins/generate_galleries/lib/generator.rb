@@ -238,7 +238,7 @@ module Jekyll
         
         # Prevent Jekyll from erasing our generated files
         site.static_files << StaticGalleryFile.new(
-          site, site.dest, gallery_post.dir, filename
+          site, site.source, gallery_post.dir, filename
         )
       end
       

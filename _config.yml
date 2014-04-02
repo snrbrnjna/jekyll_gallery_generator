@@ -2,6 +2,8 @@ name: MAIWOLF PHOTOGRAPHY
 markdown: redcarpet
 pygments: true
 
+permalink: none
+
 exclude:
   - Gemfile
   - Gemfile.lock
