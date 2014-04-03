@@ -68,8 +68,8 @@ module Jekyll
         @images = []
         @size = 0 # filesize
         
-        # if opts['generate_gallery'] => write json and galery_post
-        # if opts['regenerate_images'] => override old presets
+        # TODO: if opts['generate_gallery'] => write json and galery_post
+        # TODO: if opts['regenerate_images'] => override old presets
         @regenerate_images = opts['regenerate_images'] 
         @generate = @regenerate_images || opts['generate_gallery']
         

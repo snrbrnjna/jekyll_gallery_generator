@@ -76,12 +76,13 @@ module Jekyll
               if (gp.published?)    
                 # Add Gallery to post data (all Gallery#to_liquid data)
                 gp.data['gallery'] = gallery                    
+                
                 # Create Image objects
                 gallery.read_images
             
                 # Check if gallery was proecessed yet (Set plugin)
                 gallery_processed_yet = galleries.keys.include?(gallery.project)
-            
+# TODO: hier bin ich im Ablauf-Diagramm            
                 # Try to read in JSON if Gallery was processed in this generation yet or
                 # because of the option to not generate it.
                 status = nil
@@ -227,6 +228,7 @@ module Jekyll
       def copy_json site, gallery_post, gallery
         src_filepath = json_path(site, gallery_post, gallery)
         filename = File.basename src_filepath
+
         dst_filepath = File.join(site.dest, gallery_post.dir, filename)
         
         # Mkdir if destination dir doesn't exist yet

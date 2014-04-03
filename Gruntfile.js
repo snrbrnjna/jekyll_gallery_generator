@@ -28,7 +28,9 @@ module.exports = function (grunt) {
           '_includes/**/*.{html}',
           'js/**/*.js',
           'css/**/*.*',
-          'bower_components/**/*.{js,css}'
+          'bower_components/**/*.{js,css}',
+          '_config.yml',
+          '_plugins/**/*.rb'
         ],
         tasks: ['build:dev']
       }
