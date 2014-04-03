@@ -65,7 +65,7 @@ ul, ol { padding-left: 40px; }
   line-height: 1.5em;
 }
 
-.header a {
+header a {
   font-weight: bold;
   text-decoration: none;
 }
