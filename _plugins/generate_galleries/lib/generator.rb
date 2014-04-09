@@ -50,115 +50,73 @@ module Jekyll
         end
 
         if gallery_posts.any?
-          unless site.config['gallery']
-            puts "There are Gallery-Posts, but no Gallery configuration, hence the galleries are not processed".red
-          else
-            # werden die generierten images auf dem selben Host abgelegt, auf dem 
-            # auch die posts landen?
-            images_remote = site.config['gallery']['dst']['baseurl'].start_with?('http://', 'https://')
-      
-            # Workaround.... for issue: https://github.com/mojombo/jekyll/issues/1297
-            # Have to create a virtual static file in every subdirectory of 
-            # gallery dst baseurl, else these directories are washed away by
-            # Jekylls cleanup method...
-            unless images_remote
-              path_comps = site.config['gallery']['dst']['baseurl'].split(File::SEPARATOR)
-              path_comps.each_with_index do |path_comp, idx|
-                site.static_files << StaticGalleryFile.new(
-                  site, '', File.join(path_comps[0, idx+1]), 'keepme'
-                )
-              end
-            end
+          if site.config['gallery']
       
             # logging
             puts; puts "#### #{gallery_posts.size} Gallery-Posts"
                   
-            gallery_posts.each do |gp|
+            gallery_posts.select(&:published?).each do |gp|
                               
-              # Front Matter YAML Data
-              data = gp.data
-          
-              # Create Gallery instance
-              begin
-                # Build Options for Gallery constructor
-                opts = merge_defaults @defaults, data['gallery_config']
+              # Initialize Gallery object                   
+              gallery = init_gallery(site, gp)
 
-                # TODO auch in Defaults mit aufnehmen
-                opts['project'] = data['gallery_config']['project'] || gp.slug
-                opts['regenerate_images'] = data['gallery_config']['regenerate_images'] if data['gallery_config'].has_key?('regenerate_images')
-                opts['generate_gallery'] = data['gallery_config']['generate_gallery'] if data['gallery_config'].has_key?('generate_gallery')
-
-                gallery = Jekyll::GalleryGenerator::Gallery.new(
-                  site, data['title'], opts
-                )
-              rescue ArgumentError => error
-                warn 'ERROR: '.red + error.message
-                next
-              end
+              # Create Image objects
+              gallery.read_images
           
-              if (gp.published?)    
-                # Add Gallery to post data (all Gallery#to_liquid data)
-                gp.data['gallery'] = gallery                    
-                
-                # Create Image objects
-                gallery.read_images
-            
-                # Check if gallery was proecessed yet (Set plugin)
-                gallery_processed_yet = @galleries.keys.include?(gallery.project)
+              # Check if gallery was processed yet (Set plugin)
+              gallery.processed! if @galleries.keys.include?(gallery.project)
+
 # TODO: hier bin ich im Ablauf-Diagramm            
-                # Try to read in JSON if Gallery was processed in this generation yet or
-                # because of the option to not generate it.
-                status = nil
-                if (gallery_processed_yet || 
-                  (!gallery.generate? && File.exists?(json_path(site, gp, gallery))))
-                  LOG.info "nothing to do, only read in the Gallery JSON " +
-                    "for generating the gallery post"
-                  
-                  # Read in Gallery from json, so that gallery_post can get
-                  # created by Mr. Jekyll
-                  begin
-                    gallery.read_json!(json_path(site, gp, gallery))
-                    copy_json(site, gp, gallery)
-                    status = :nothing
-                  rescue Exception => e
-                    LOG.info "JSON was corrupt, have to generate it again"
-                  end
-                end
 
-                # Gallery has to be created because previous block didn't work out
-                unless status == :nothing
-                  # Generate resized images
-                  gallery.generate_presets
-                  # Write json
-                  generate_json(site, gp, gallery)
+              # Try to read in JSON if Gallery was processed in this generation yet or
+              # because of the option to not generate it.
+              status = nil
+              if (gallery.processed? || 
+                (!gallery.generate? && File.exists?(json_path(site, gallery))))
+                # Read in Gallery from json, so that gallery_post can get
+                # created by Mr. Jekyll
+                begin
+                  gallery.read_json!(json_path(site, gallery))
                   copy_json(site, gp, gallery)
-                  # Stats
-                  status = :generate_presets
+                  status = :nothing
+                rescue Exception => e
+                  LOG.info "JSON was corrupt, have to generate it again"
                 end
-                # end gallery generate
-            
-                # Copy generated images
-                unless images_remote || gallery_processed_yet
-                  copy_images(site, gallery)
-                end # end copy images
+              end
 
-                # Save log output for current gallery
-                log_gallery(gallery, gallery_processed_yet, status)
-            
-                # Save gallery id for not generating a gallery twice
-                @galleries[gallery.project] = gallery
-             
-              end # end published
+              # Gallery has to be created because previous block didn't work out
+              unless status == :nothing
+                # Generate resized images
+                gallery.generate_presets
+                # Write json
+                generate_json(site, gallery)
+                copy_json(site, gp, gallery)
+                # Stats
+                status = :generate_presets
+              end
+              # end gallery generate
           
-            end # end gallery_posts
-                
-            # logging
-            puts; puts @gallery_stats
-            if @galleries_size < 7516192768
-              puts "Total of #{@galleries_size.to_human}".green
-            else 
-              puts "Total of #{@galleries_size.to_human} CAUTION: your quota is going to be exhausted soon!".red
-            end
+              # Copy generated images
+              unless gallery.remote? || gallery.processed?
+                copy_images(site, gallery)
+                prevent_jekyll_from_removing_my_files(site, gallery)
+              end # end copy images
+
+              # Save log output for current gallery
+              log_gallery(gallery, status)
+          
+              # Save gallery id for not generating a gallery twice
+              @galleries[gallery.project] = gallery
+
+              # Mark Gallery as processed
+              gallery.processed!
+          
+            end # end each published gallery_posts
+
+            # logging summary stats
+            log_summary()
+          else
+            puts "There are Gallery-Posts, but no Gallery configuration, hence the galleries are not processed".red
           end # end site.config
         end # end gallery_posts.any?
       end # end generate
@@ -194,25 +152,43 @@ module Jekyll
         return config        
       end
 
+      # Initialize Gallery Object from gallery_post
+      def init_gallery site, gallery_post
+        # Front Matter YAML Data
+        data = gallery_post.data
+    
+        # Create Gallery instance
+        begin
+          # Build Options for Gallery constructor
+          opts = merge_defaults @defaults, data['gallery_config']
+
+          # TODO auch in Defaults mit aufnehmen
+          opts['project'] = data['gallery_config']['project'] || gallery_post.slug
+          opts['regenerate_images'] = data['gallery_config']['regenerate_images'] if data['gallery_config'].has_key?('regenerate_images')
+          opts['generate_gallery'] = data['gallery_config']['generate_gallery'] if data['gallery_config'].has_key?('generate_gallery')
+
+          gallery = Jekyll::GalleryGenerator::Gallery.new(
+            site, data['title'], opts
+          )
+        rescue ArgumentError => error
+          warn 'ERROR: '.red + error.message
+          return
+        end
+    
+        # Add Gallery to post data (all Gallery#to_liquid data)
+        return gallery_post.data['gallery'] = gallery 
+      end
+
       # the path to the "cached" json file, it gets copied to the same path as the
       # gallery post in #generate
-      def json_path site, gallery_post, gallery
+      def json_path site, gallery
         filename = "#{gallery.project}.json"
         filepath = File.join(gallery.dst[:basepath], '..' , filename)
       end
 
       # Generates a JSON File next to the gallery post html File. 
-      #
-      # It can be fetched in the browser with: 
-      # $.ajax({
-      #   dataType: 'json', 
-      #   url: '<project>.json', 
-      #   success: function(data) {
-      #       console.log(data);
-      #   }
-      # })
-      def generate_json site, gallery_post, gallery
-        filepath = json_path(site, gallery_post, gallery)
+      def generate_json site, gallery
+        filepath = json_path(site, gallery)
         
         # Create Dst Directory if not existent yet
         filedir = File.dirname(filepath)
@@ -235,7 +211,7 @@ module Jekyll
       end
       
       def copy_json site, gallery_post, gallery
-        src_filepath = json_path(site, gallery_post, gallery)
+        src_filepath = json_path(site, gallery)
         filename = File.basename src_filepath
 
         dst_filepath = File.join(site.dest, gallery_post.dir, filename)
@@ -253,26 +229,45 @@ module Jekyll
         )
       end
       
-      # Copy Images and add StaticFiles for all Images to Jekyll
+      # Copy Images for all Images to Jekyll
       #
       # We copy by ourself, because the directory structure doesn't
       # fit into the schema with which Mr. Jekyll is used to work
       # (details in Jekyll::StaticFile)
       def copy_images site, gallery
         dst_dir = File.join(site.dest, gallery.dst[:baseurl])
-        # copy only when gallery has to be created by option or 
-        # because of missing preset files or because dst files
-        # do not exist.
-        if (gallery.generate? || !File.exists?(dst_dir))
-          FileUtils.mkdir_p(dst_dir) unless File.exists?(dst_dir)
-          gallery.presets.each_key do |preset_key|
-            FileUtils.cp_r(
-              File.join(gallery.dst[:basepath], preset_key),
-              dst_dir
-            )
-          end
+        FileUtils.mkdir_p(dst_dir) unless File.exists?(dst_dir)
+        # Rsync Image Files to dst_dir
+        rsync_options = [
+          '--recursive', 
+          '--delete', 
+          '--times',
+          '--delete-excluded', 
+          '--exclude=*.json',
+          '--exclude=.DS_Store',
+          '--human-readable' # for debugging, combine with --verbose --progress'
+        ]
+        rsync_call = "rsync #{gallery.dst[:basepath]}/ #{dst_dir}/ #{rsync_options.join(' ')}"
+        unless system(rsync_call)
+          warn 'ERROR: '.red + "Error when copying images! Call '#{rsync_call}' returned with exit code #{$?.exitstatus}"
         end
-        # Prevent the copied files from beeing removed again by 
+      end
+
+      # Prevent the gallery directories and image files from beeing removed 
+      # by Jekylls cleanup method
+      def prevent_jekyll_from_removing_my_files site, gallery
+        # Workaround.... for issue: https://github.com/mojombo/jekyll/issues/1297
+        # We Have to create a virtual static file in every subdirectory of 
+        # gallery dst baseurl, else these directories are washed away by
+        # Jekylls cleanup method...
+        path_comps = gallery.dst[:baseurl].split(File::SEPARATOR)
+        path_comps.each_with_index do |path_comp, idx|
+          site.static_files << StaticGalleryFile.new(
+            site, '', File.join(path_comps[0, idx+1]), 'keepme'
+          )
+        end
+
+        # Prevent the image files from beeing removed again by 
         # Jekylls cleanup method
         site.keep_files << gallery.dst[:baseurl] unless site.keep_files.include?(gallery.dst[:baseurl])
         gallery.images.each do |img|
@@ -282,20 +277,12 @@ module Jekyll
             )
           end
         end
-    
-        # Workaround.... for issue: https://github.com/mojombo/jekyll/issues/1297
-        # Have to create a virtual static file in every subdirectory of 
-        # gallery dst baseurl, else these directories are washed away by
-        # Jekylls cleanup method...
-        site.static_files << StaticGalleryFile.new(
-          site, '', gallery.dst[:baseurl], 'keepme'
-        )
       end
 
-      def log_gallery gallery, processed_yet, status
+      def log_gallery gallery, status
         # Filesize stats
         @galleries_size += gallery.size
-        if (!processed_yet)
+        unless (gallery.processed?)
           @gallery_stats << "#{gallery.title}".send(status == :nothing ? 'cyan' : 'green') +
             " - #{gallery.images.size} Images, #{gallery.size.to_human}" +
             " (Quality: #{gallery.quality}%)"
@@ -304,6 +291,15 @@ module Jekyll
             "  #{p_key}:\t\t#{size.to_human} (~ #{(size/gallery.images.count).floor.to_human})"
           end
           @gallery_stats << preset_stats
+        end
+      end
+
+      def log_summary
+        puts; puts @gallery_stats
+        if @galleries_size < 7516192768
+          puts "Total of #{@galleries_size.to_human}".green
+        else 
+          puts "Total of #{@galleries_size.to_human} CAUTION: your quota is going to be exhausted soon!".red
         end
       end
 

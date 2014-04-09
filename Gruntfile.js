@@ -103,7 +103,10 @@ module.exports = function (grunt) {
 
   grunt.registerTask('build', function (target) {
     if (target === 'dev') {
-      return grunt.task.run([ 'jekyll:build', 'copy:dev' ]);
+      return grunt.task.run([
+        'jekyll:build',
+        'copy:dev'
+      ]);
     }
 
     grunt.task.run([

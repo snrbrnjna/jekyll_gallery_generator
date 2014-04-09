@@ -13,8 +13,7 @@ module Jekyll
         :pretty_json
       
       def initialize site, title, config
-        LOG.info("Processing Gallery '#{project}' ...")
-        puts "Processing Gallery '#{project}' ..."
+        puts "Processing Gallery '#{config['project']}' ..."
 
         # Invaild Presets?
         raise ArgumentError.new(
@@ -47,6 +46,7 @@ module Jekyll
         
         @dynamic = config['dynamic_fill']
         @pretty_json = config['pretty_json']
+        @processed = false
         
         # options to configure the javascript Gallery
         @opts = config['opts']
@@ -100,7 +100,6 @@ module Jekyll
         end
       end
 
-
       def to_liquid
         # opts has to be a json string in the liquid var
         hash = to_h; hash['opts'] = hash['opts'].to_json
@@ -121,6 +120,18 @@ module Jekyll
           'dynamic'       => @dynamic,
           'opts'          => @opts
         }
+      end
+
+      def processed!
+        @processed = true
+      end
+
+      def processed?
+        @processed
+      end
+
+      def remote?
+        @dst[:baseurl].start_with?('http://', 'https://')
       end
       
       # all have to be read in as a minimum requirement 
