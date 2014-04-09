@@ -4,7 +4,45 @@ module Jekyll
         
       priority :normal
       
+      DEFAULTS = {
+        'src' => {
+          'basepath' => '_galleries/_fullsizes'
+        }, 
+        'dst' => {
+          'basepath' => '_galleries/_generated',
+          'baseurl' =>  '/img/galleries'
+        }, 
+        'presets' => {
+          'thumb' =>        { 'width' =>  450 },
+          'large_phones' => { 'width' =>  650 },
+          'large_pads' =>   { 'width' => 1024 }, 
+          'large' =>        { 'width' => 1400 } 
+        },
+        'quality' => 100,
+        'opts' => {     # opts for gallery frontend
+          'min_col_width' => {
+            'desktop' =>  320,
+            'pad' =>      320,
+            'phone' =>    300
+          },
+          'gutterWidth' =>   3,
+          'chunkSize' =>     8,
+          'firstChunk' =>   15
+        },
+        'pretty_json' => false,
+        'dynamic_fill' => true 
+      }
+
       def generate site
+        # set site wide gallery defaults
+        @defaults = merge_defaults DEFAULTS, site.config['gallery']
+
+        # Hash of all processed Gallery objects
+        @galleries = {}; 
+
+        # Save some stats for User Feedback
+        @gallery_stats = []; @galleries_size = 0
+
         # filter gallery posts
         payload = site.site_payload
         gallery_posts = payload['site']['posts'].select do |post| 
@@ -32,8 +70,6 @@ module Jekyll
               end
             end
       
-            galleries = {}; gallery_stats = []; galleries_size = 0
-      
             # logging
             puts; puts "#### #{gallery_posts.size} Gallery-Posts"
                   
@@ -42,32 +78,19 @@ module Jekyll
               # Front Matter YAML Data
               data = gp.data
           
-              # Build Options for Gallery constructor
-              opts = {}
-              opts['presets'] = site.config['gallery']['presets'].dup
-              opts['title'] = data['title']
-              opts['presets'].merge!(data['presets']) if data.has_key?('presets')
-              opts['quality'] = site.config['gallery']['quality']
-              opts['quality'] = data['quality'] if data.has_key?('quality')
-              opts['regenerate_images'] = data['regenerate_images'] if data.has_key?('regenerate_images')
-              opts['generate_gallery'] = data['generate_gallery'] if data.has_key?('generate_gallery')
-              opts['dynamic_fill'] = data['dynamic_fill'] if data.has_key?('dynamic_fill')
-              # Gallery Options
-              if (data.has_key?('gallery') || site.config['gallery'].has_key?('opts'))
-                # fetch & merge options from site config & post
-                gallery_opts = site.config['gallery']['opts'] || {}
-                gallery_opts = gallery_opts.merge(data['gallery']) if data.has_key?('gallery')
-                # fill gallery opts
-                opts['gallery'] = {}
-                opts['gallery']['min_col_width'] = gallery_opts['minColWidth'] if gallery_opts.has_key?('minColWidth')
-                opts['gallery']['gutter_width'] = gallery_opts['gutterWidth'] if gallery_opts.has_key?('gutterWidth')
-                opts['gallery']['chunk_size'] = gallery_opts['chunkSize'] if gallery_opts.has_key?('chunkSize')
-                opts['gallery']['first_chunk'] = gallery_opts['firstChunk'] if gallery_opts.has_key?('firstChunk')
-              end
-          
               # Create Gallery instance
               begin
-                gallery = Jekyll::GalleryGenerator::Gallery.new(site, data['project'], opts)
+                # Build Options for Gallery constructor
+                opts = merge_defaults @defaults, data['gallery_config']
+
+                # TODO auch in Defaults mit aufnehmen
+                opts['project'] = data['gallery_config']['project'] || gp.slug
+                opts['regenerate_images'] = data['gallery_config']['regenerate_images'] if data['gallery_config'].has_key?('regenerate_images')
+                opts['generate_gallery'] = data['gallery_config']['generate_gallery'] if data['gallery_config'].has_key?('generate_gallery')
+
+                gallery = Jekyll::GalleryGenerator::Gallery.new(
+                  site, data['title'], opts
+                )
               rescue ArgumentError => error
                 warn 'ERROR: '.red + error.message
                 next
@@ -81,7 +104,7 @@ module Jekyll
                 gallery.read_images
             
                 # Check if gallery was proecessed yet (Set plugin)
-                gallery_processed_yet = galleries.keys.include?(gallery.project)
+                gallery_processed_yet = @galleries.keys.include?(gallery.project)
 # TODO: hier bin ich im Ablauf-Diagramm            
                 # Try to read in JSON if Gallery was processed in this generation yet or
                 # because of the option to not generate it.
@@ -90,6 +113,7 @@ module Jekyll
                   (!gallery.generate? && File.exists?(json_path(site, gp, gallery))))
                   LOG.info "nothing to do, only read in the Gallery JSON " +
                     "for generating the gallery post"
+                  
                   # Read in Gallery from json, so that gallery_post can get
                   # created by Mr. Jekyll
                   begin
@@ -100,6 +124,7 @@ module Jekyll
                     LOG.info "JSON was corrupt, have to generate it again"
                   end
                 end
+
                 # Gallery has to be created because previous block didn't work out
                 unless status == :nothing
                   # Generate resized images
@@ -112,86 +137,70 @@ module Jekyll
                 end
                 # end gallery generate
             
-                # Filesize stats
-                if (!gallery_processed_yet)
-                  preset_stats = []
-                  gallery.presets.each do |p_key, preset|
-                    dirname = File.join(gallery.dst[:basepath], p_key)
-                    images = Dir.glob(File.join(dirname, '*'))
-                    summed_size = 0
-                    images.each do |img|
-                      summed_size += File.size(img)
-                    end
-                    preset_stats << "  #{p_key}:\t\t#{summed_size.to_human} (~ #{(summed_size/images.size).floor.to_human})"
-                    gallery.size += summed_size
-                  end
-                  gallery_stats << "#{gallery.title}".send(status == :nothing ? 'cyan' : 'green') +
-                    " - #{gallery.images.size} Images, #{gallery.size.to_human}" +
-                    " (Quality: #{gallery.quality}%)"
-                  gallery_stats << preset_stats
-                end
-            
                 # Copy generated images
                 unless images_remote || gallery_processed_yet
-                  # We copy by ourself, because the directory structure doesn't
-                  # fit into the schema with which Mr. Jekyll is used to work
-                  # (details in Jekyll::StaticFile)
-                  dst_dir = File.join(site.dest, gallery.dst[:baseurl])
-                  # copy only when gallery has to be created by option or 
-                  # because of missing preset files or because dst files
-                  # do not exist.
-                  if (gallery.generate? || !File.exists?(dst_dir))
-                    FileUtils.mkdir_p(dst_dir) unless File.exists?(dst_dir)
-                    gallery.presets.each_key do |preset_key|
-                      FileUtils.cp_r(
-                        File.join(gallery.dst[:basepath], preset_key),
-                        dst_dir
-                      )
-                    end
-                  end
-                  # Prevent the copied files from beeing removed again by 
-                  # Jekylls cleanup method
-                  site.keep_files << gallery.dst[:baseurl] unless site.keep_files.include?(gallery.dst[:baseurl])
-                  gallery.images.each do |img|
-                    img.presets.each_key do |preset_key|
-                      site.static_files << StaticGalleryFile.new(
-                        site, '', img.dst[preset_key][:baseurl], img.dst[:filename]
-                      )
-                    end
-                  end
-              
-                  # Workaround.... for issue: https://github.com/mojombo/jekyll/issues/1297
-                  # Have to create a virtual static file in every subdirectory of 
-                  # gallery dst baseurl, else these directories are washed away by
-                  # Jekylls cleanup method...
-                  site.static_files << StaticGalleryFile.new(
-                    site, '', gallery.dst[:baseurl], 'keepme'
-                  )
-              
+                  copy_images(site, gallery)
                 end # end copy images
+
+                # Save log output for current gallery
+                log_gallery(gallery, gallery_processed_yet, status)
             
-                # Save gallery id for not generating a gallery twice (with 
-                # the Sets plugin some posts may be generated more than once)
-                galleries[gallery.project] = gallery
-            
-                # Stats
-                galleries_size += gallery.size
-              
+                # Save gallery id for not generating a gallery twice
+                @galleries[gallery.project] = gallery
+             
               end # end published
           
             end # end gallery_posts
                 
             # logging
-            puts; puts gallery_stats
-            if galleries_size < 7516192768
-              puts "Total of #{galleries_size.to_human}".green
+            puts; puts @gallery_stats
+            if @galleries_size < 7516192768
+              puts "Total of #{@galleries_size.to_human}".green
             else 
-              puts "Total of #{galleries_size.to_human} CAUTION: your quota is going to be exhausted soon!".red
+              puts "Total of #{@galleries_size.to_human} CAUTION: your quota is going to be exhausted soon!".red
             end
           end # end site.config
         end # end gallery_posts.any?
       end # end generate
-      
+
+
+
+      # sets site wide gallery defaults
+      def merge_defaults defaults, gallery_opts
+        # Build Options for Gallery constructor
+        config = {}
+        config['src'] = defaults['src'].merge(gallery_opts['src'] || {})
+        config['dst'] = defaults['dst'].merge(gallery_opts['dst'] || {})
+        config['presets'] = defaults['presets'].merge(gallery_opts['presets'] || {})
+        config['quality'] = gallery_opts['quality'] || defaults['quality']
+        config['dynamic_fill'] = gallery_opts.has_key?('dynamic_fill') ? 
+          gallery_opts['dynamic_fill'] : 
+          defaults['dynamic_fill']
+        config['pretty_json'] = gallery_opts.has_key?('pretty_json') ? 
+          gallery_opts['pretty_json'] : 
+          defaults['pretty_json']
+        config['opts'] ||= {}
+        if (gallery_opts['opts'])
+          config['opts']['min_col_width'] = defaults['opts']['min_col_width'].merge(
+            gallery_opts['opts']['min_col_width'] || {}
+          )
+          config['opts']['gutter_width'] = gallery_opts['opts']['gutter_width'] || 
+            defaults['opts']['gutter_width']
+          config['opts']['chunk_size'] = gallery_opts['opts']['chunk_size'] || 
+            defaults['opts']['chunk_size']
+          config['opts']['first_chunk'] = gallery_opts['opts']['first_chunk'] || 
+            defaults['opts']['first_chunk']
+        end
+        return config        
+      end
+
+      # the path to the "cached" json file, it gets copied to the same path as the
+      # gallery post in #generate
+      def json_path site, gallery_post, gallery
+        filename = "#{gallery.project}.json"
+        filepath = File.join(gallery.dst[:basepath], '..' , filename)
+      end
+
       # Generates a JSON File next to the gallery post html File. 
       #
       # It can be fetched in the browser with: 
@@ -212,7 +221,7 @@ module Jekyll
         # Write the contents of gallery json.
         filename = File.basename(filepath)
         File.open(filepath, 'w') do |f|
-          if gallery_post.data.has_key?('pretty_json') && gallery_post.data['pretty_json']
+          if gallery.pretty_json
             f.write(JSON.pretty_generate(
               { 'gallery' => gallery }
             ))
@@ -244,13 +253,60 @@ module Jekyll
         )
       end
       
-      # the path to the "cached" json file, it gets copied to the same path as the
-      # gallery post in #generate
-      def json_path site, gallery_post, gallery
-        filename = "#{gallery.project}.json"
-        filepath = File.join(gallery.dst[:basepath], '..' , filename)
+      # Copy Images and add StaticFiles for all Images to Jekyll
+      #
+      # We copy by ourself, because the directory structure doesn't
+      # fit into the schema with which Mr. Jekyll is used to work
+      # (details in Jekyll::StaticFile)
+      def copy_images site, gallery
+        dst_dir = File.join(site.dest, gallery.dst[:baseurl])
+        # copy only when gallery has to be created by option or 
+        # because of missing preset files or because dst files
+        # do not exist.
+        if (gallery.generate? || !File.exists?(dst_dir))
+          FileUtils.mkdir_p(dst_dir) unless File.exists?(dst_dir)
+          gallery.presets.each_key do |preset_key|
+            FileUtils.cp_r(
+              File.join(gallery.dst[:basepath], preset_key),
+              dst_dir
+            )
+          end
+        end
+        # Prevent the copied files from beeing removed again by 
+        # Jekylls cleanup method
+        site.keep_files << gallery.dst[:baseurl] unless site.keep_files.include?(gallery.dst[:baseurl])
+        gallery.images.each do |img|
+          img.presets.each_key do |preset_key|
+            site.static_files << StaticGalleryFile.new(
+              site, '', img.dst[preset_key][:baseurl], img.dst[:filename]
+            )
+          end
+        end
+    
+        # Workaround.... for issue: https://github.com/mojombo/jekyll/issues/1297
+        # Have to create a virtual static file in every subdirectory of 
+        # gallery dst baseurl, else these directories are washed away by
+        # Jekylls cleanup method...
+        site.static_files << StaticGalleryFile.new(
+          site, '', gallery.dst[:baseurl], 'keepme'
+        )
       end
-        
+
+      def log_gallery gallery, processed_yet, status
+        # Filesize stats
+        @galleries_size += gallery.size
+        if (!processed_yet)
+          @gallery_stats << "#{gallery.title}".send(status == :nothing ? 'cyan' : 'green') +
+            " - #{gallery.images.size} Images, #{gallery.size.to_human}" +
+            " (Quality: #{gallery.quality}%)"
+          preset_stats = gallery.presets.map do |p_key, preset|
+            size = preset['size']
+            "  #{p_key}:\t\t#{size.to_human} (~ #{(size/gallery.images.count).floor.to_human})"
+          end
+          @gallery_stats << preset_stats
+        end
+      end
+
     end
 
 

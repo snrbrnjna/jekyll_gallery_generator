@@ -14,14 +14,14 @@ exclude:
 
 gallery: 
   src: 
-    basepath: img/_fullsizes
+    basepath: _galleries/_fullsizes
   dst: 
-    basepath: img/_galleries
+    basepath: _galleries/_generated
     baseurl: /img/galleries
   quality: 85
   presets: 
     thumb: 
-      width: 240
+      width: 450
     large_phones: 
       width: 650
     large_pads: 
@@ -29,10 +29,10 @@ gallery:
     large: 
       width: 1400
   opts: 
-    minColWidth: 
+    min_col_width: 
       desktop: 320
       pad: 320
       phone: 300
-    gutterWidth: 3
-    chunkSize: 8
-    firstChunk: 15
+    gutter_width: 3
+    chunk_size: 8
+    first_chunk: 15
