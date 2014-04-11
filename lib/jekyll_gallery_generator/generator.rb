@@ -108,31 +108,35 @@ module Jekyll
       # sets site wide gallery defaults
       def merge_defaults defaults, gallery_opts
         # Build Options for Gallery constructor
-        config = {}
-        config['src'] = defaults['src'].merge(gallery_opts['src'] || {})
-        config['dst'] = defaults['dst'].merge(gallery_opts['dst'] || {})
-        config['presets'] = defaults['presets'].merge(gallery_opts['presets'] || {})
-        config['quality'] = gallery_opts['quality'] || defaults['quality']
-        config['dynamic_fill'] = gallery_opts.has_key?('dynamic_fill') ? 
-          gallery_opts['dynamic_fill'] : 
-          defaults['dynamic_fill']
-        config['pretty_json'] = gallery_opts.has_key?('pretty_json') ? 
-          gallery_opts['pretty_json'] : 
-          defaults['pretty_json']
-        config['do'] = gallery_opts['do'] || defaults['do']
-        config['opts'] ||= {}
-        if (gallery_opts['opts'])
-          config['opts']['min_col_width'] = defaults['opts']['min_col_width'].merge(
-            gallery_opts['opts']['min_col_width'] || {}
-          )
-          config['opts']['gutter_width'] = gallery_opts['opts']['gutter_width'] || 
-            defaults['opts']['gutter_width']
-          config['opts']['chunk_size'] = gallery_opts['opts']['chunk_size'] || 
-            defaults['opts']['chunk_size']
-          config['opts']['first_chunk'] = gallery_opts['opts']['first_chunk'] || 
-            defaults['opts']['first_chunk']
+        if gallery_opts
+          config = {}
+          config['src'] = defaults['src'].merge(gallery_opts['src'] || {})
+          config['dst'] = defaults['dst'].merge(gallery_opts['dst'] || {})
+          config['presets'] = defaults['presets'].merge(gallery_opts['presets'] || {})
+          config['quality'] = gallery_opts['quality'] || defaults['quality']
+          config['dynamic_fill'] = gallery_opts.has_key?('dynamic_fill') ? 
+            gallery_opts['dynamic_fill'] : 
+            defaults['dynamic_fill']
+          config['pretty_json'] = gallery_opts.has_key?('pretty_json') ? 
+            gallery_opts['pretty_json'] : 
+            defaults['pretty_json']
+          config['do'] = gallery_opts['do'] || defaults['do']
+          config['opts'] ||= {}
+          if (gallery_opts['opts'])
+            config['opts']['min_col_width'] = defaults['opts']['min_col_width'].merge(
+              gallery_opts['opts']['min_col_width'] || {}
+            )
+            config['opts']['gutter_width'] = gallery_opts['opts']['gutter_width'] || 
+              defaults['opts']['gutter_width']
+            config['opts']['chunk_size'] = gallery_opts['opts']['chunk_size'] || 
+              defaults['opts']['chunk_size']
+            config['opts']['first_chunk'] = gallery_opts['opts']['first_chunk'] || 
+              defaults['opts']['first_chunk']
+          end
+          return config
+        else
+          return {}.merge(defaults)
         end
-        return config        
       end
 
       # Initialize Gallery Object from gallery_post
@@ -146,7 +150,8 @@ module Jekyll
           opts = merge_defaults @defaults, data['gallery_config']
 
           # project (aka id of gallery post comes from it's slug)
-          opts['project'] = data['gallery_config']['project'] || gallery_post.slug
+          opts['project'] = (data['gallery_config'] && data['gallery_config']['project']) || 
+            gallery_post.slug
 
           gallery = Jekyll::GalleryGenerator::Gallery.new(
             site, data['title'], opts
@@ -181,8 +186,8 @@ module Jekyll
       # Hash, or nil
       def parse_json gallery
         json_path = gallery.dst[:json_path]
-        io = IO.read(json_path)
         begin
+          io = IO.read(json_path)
           JSON.parse(io)
         rescue
           nil

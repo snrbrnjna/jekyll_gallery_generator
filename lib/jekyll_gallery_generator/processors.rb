@@ -14,7 +14,7 @@ module Jekyll
 
       gallery.read_origs
       data = generator.parse_json(gallery)
-      if (gallery.check_images(data))
+      if (data && gallery.check_images(data))
         gallery.read_json(data)
         return :nothing
       else
