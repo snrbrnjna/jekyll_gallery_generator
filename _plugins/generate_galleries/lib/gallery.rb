@@ -9,12 +9,10 @@ module Jekyll
       EXT_PATTERN = '*.{JPG,JPEG,jpg,png}'
       
       attr_accessor :dst
-      attr_reader :title, :project, :src, :presets, :images, :quality, :opts, 
-        :pretty_json
+      attr_reader :title, :project, :src, :presets, :quality, :images,
+        :processor_action, :opts, :pretty_json
       
       def initialize site, title, config
-        puts "Processing Gallery '#{config['project']}' ..."
-
         # Invaild Presets?
         raise ArgumentError.new(
           "Gallery #{config['project']} can't be created because of invalid presets: #{config['presets']}"
@@ -29,9 +27,10 @@ module Jekyll
         }
         @dst = {
           :basepath => File.join(@site_base, config['dst']['basepath'], @project),
-          :baseurl => File.join(config['dst']['baseurl'], @project)
+          :baseurl => File.join(config['dst']['baseurl'], @project),
+          :json_path => File.join(@site_base, config['dst']['basepath'], "#{@project}.json")
         }
-        @presets = set_presets(config)
+        @presets = set_presets(config['presets'])
         @quality = config['quality']
         
         # prepare other instance vars
@@ -39,10 +38,7 @@ module Jekyll
         @images = []
         @size = 0 # filesize
         
-        # TODO: if config['regenerate_images'] => override old presets
-        # TODO: if config['generate_gallery'] => write json
-        @regenerate_images = config['regenerate_images'] 
-        @generate = @regenerate_images || config['generate_gallery']
+        @processor_action = config['do']
         
         @dynamic = config['dynamic_fill']
         @pretty_json = config['pretty_json']
@@ -51,51 +47,50 @@ module Jekyll
         # options to configure the javascript Gallery
         @opts = config['opts']
       end
-      
-      # This works, after Gallery#read_images and fills the Image 
-      # instance vars for a correct Image#to_json, without having to 
-      # run Gallery#generate_presets
-      def read_json!(json_path)
-        io = IO.read(json_path)
-        begin
-          json_hash = JSON.parse(io)
-        rescue
-          raise Exception.new("Corrupt Json File #{json_path}. Delete it and try again!")
-        end
-        @title = json_hash['gallery']['title']
-        set_presets(json_hash['gallery'])
-        json_images = json_hash['gallery']['images']
-        if (json_images.size != @images.size)
-          raise Exception.new("Corrupt Json File #{json_path}. Delete it and try again!")
-        end
-        json_images.each do |json_img|
-          @images[json_img['index']].read_json!(json_img)
-        end
-      end
 
       # Create Image objects and checks if all presets are generated yet
-      def read_images
+      def read_origs
         raise "Directory with fullsize images doesn't exist: #{@src[:basepath]}" unless Dir.exists?(@src[:basepath])
         # Read in sources
         @src[:image_paths] = Dir[File.join(@src[:basepath], EXT_PATTERN)]
         # normalize filenames
         normalize_basenames!
         @src[:image_paths].each_with_index do |src_path, idx|
-          @images << img = Jekyll::GalleryGenerator::Image.new(self, src_path, 
-            'index' => idx
-          )
-          # if we miss 1 dst image => all have to be read-in for the json file to be rewritten
-          @generate ||= img.generate?
+          @images << img = Jekyll::GalleryGenerator::Image.new(self, src_path, 'index' => idx)
+        end
+      end
+
+      # Returns true, when the filenames in the json_data Hash are equal to the 
+      # origs read in with Gallery#read_origs and if all presets are generated
+      def check_images(json_data)
+        # compare number of files and filenames
+        @images.size == json_data['gallery']['images'].size &&
+        # compare filenames (filenames in json which come with digest as a postfix)
+        @images.map{|img| img.src[:filename]} == json_data['gallery']['images'].map do |image_json|
+          image_json['filename'].gsub("-#{image_json['digest']}", '')
+        end &&
+        @images.all?(&:presets_generated?)
+      end
+
+      # This works, after Gallery#read_origs and fills the Image
+      # instance vars for a correct Image#to_json, without having to
+      # run Gallery#generate_presets
+      def read_json(json_data)
+        @title = json_data['gallery']['title']
+        set_presets(json_data['gallery']['presets'])
+        json_data['gallery']['images'].each_with_index do |json_img, idx|
+          @images[idx] ||= Jekyll::GalleryGenerator::Image.new(self, '.not-known', 'index' => idx)
+          @images[json_img['index']].read_json(json_img)
         end
       end
 
       # Generate resized images
-      def generate_presets
+      def generate_presets(force)
         # Initialize Progressbar (# images * presets + 1)
         progressbar = ProgressBar.create(:format => '%a |%b>>%i| %p%% %t', 
           :total => @images.size)
         @images.each do |img|
-          img.generate_presets
+          img.generate_presets(force)
           progressbar.increment
         end
       end
@@ -116,9 +111,9 @@ module Jekyll
           'project'       => @project,
           'presets'       => @presets,
           'imageCount'    => @images.size,
-          'images'        => @images,
           'dynamic'       => @dynamic,
-          'opts'          => @opts
+          'opts'          => @opts,
+          'images'        => @images
         }
       end
 
@@ -134,18 +129,6 @@ module Jekyll
         @dst[:baseurl].start_with?('http://', 'https://')
       end
       
-      # all have to be read in as a minimum requirement 
-      # => json file with metadata has to be created again
-      # => html files have to be created with all thumbs in it
-      def generate?
-        @generate
-      end
-      
-      # all images have to be regenerated
-      def regenerate_images?
-        @regenerate_images
-      end
-
       def size
         if @size == 0
           @presets.each do |p_key, preset|
@@ -181,8 +164,8 @@ module Jekyll
       
       # sets all preset attributes from the config Hash and sets the baseurl for
       # every preset
-      def set_presets(config)
-        @presets = config['presets']
+      def set_presets(presets)
+        @presets = presets
         @presets.each do |p_key, preset|
           preset[:baseurl] = File.join(@dst[:baseurl], p_key)
         end

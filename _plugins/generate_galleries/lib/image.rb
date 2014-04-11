@@ -40,13 +40,13 @@ module Jekyll
         @presets.each do |preset_key, preset|
           @dst[preset_key] = {}
         end
-        @generate = @regenerate_images = gallery.regenerate_images?
         @index = opts['index']
       end
 
-      # This works, after Gallery#read_images and fills the instance vars for a
-      # correct Image#to_json, without having to run Image#generate_presets
-      def read_json!(json_hash)
+      # Fills the instance vars for a correct Image#to_json, without having to 
+      # run Image#generate_presets
+      # CAUTION: #presets have to be set yet! Leaves #src Hash as is.
+      def read_json(json_hash)
         @digest = json_hash['digest']
         @index = json_hash['index']
         @exif = json_hash['exif']
@@ -87,31 +87,45 @@ module Jekyll
         to_h
       end
       
-      def get_preset_attrs(including_src)
-        @presets.keys.inject({}) do |p_urls, p_key|
-          p_urls[p_key] = {
-            :width => @dst[p_key][:width].to_i,
-            :height => @dst[p_key][:height].to_i
-          }
-          p_urls[p_key][:src] = @dst[p_key][:url] if including_src
-          p_urls
-        end
-      end
-              
       # Check for all presets in @dst['basepath']
       # Fills dst Hash (so wie in #to_json ausgegeben), wenn Files schon 
       # vorhanden, ansonsten muss das src-File ja gelesen und der digest noch 
       # berechnet werden...
       #
-      # if we do not have all dst images || @regenerate_images => @generate = true
-      def generate?
+      # if we do not have all dst images
+      def presets_generated?
         pattern = File.join(
           @dst[:basepath], "{#{presets.keys.join(',')}}", "#{@src[:filename_base]}-*#{@src[:ext]}"
         )
-        @generate ||= Dir.glob(pattern).size < @presets.keys.size
+        Dir.glob(pattern).size == @presets.keys.size
       end
       
-      def generate_presets
+      def generate_presets(force)
+        image = read_src_image()
+
+        @presets.each do |preset_key, preset|
+          # prepare preset dst infos
+          prepare_preset_dst(preset_key, preset)
+          
+          # Calculate preset dimensions
+          calculate_preset_dims(preset_key, preset) 
+
+          if force || !File.exists?(@dst[preset_key][:path])
+            write_preset(preset_key, preset)
+          else
+            LOG.info 'Nothing to generate all files are there yet!'
+          end
+        end
+        
+        # Free memory!
+        image.destroy!
+        @src.delete :image_blob
+      end
+      
+    private
+
+      # Reads in src image file and calculates and sets its attributes
+      def read_src_image
         LOG.info "Reading in Image #{@src[:path]} ..."
         image = MiniMagick::Image.open(@src[:path])
         # Save orig-Image-Blob for later use of orig Image
@@ -144,54 +158,45 @@ module Jekyll
         @src[:width] = image[:width].to_f
         @src[:height] = image[:height].to_f
         @src[:ratio] = @src[:width]/@src[:height]
-        # DEBUG
-        # LOG.debug "src: #{@src[:width]}x#{@src[:height]} (#{@src[:ratio]})"
-        
-        @presets.each do |preset_key, preset|
-          write_preset preset_key, preset
-        end
-        
-        # Free memory!
-        image.destroy!
-        @src.delete :image_blob
+
+        return image
       end
-      
+
+      # returns Hash with attrs for all presets 
+      def get_preset_attrs(including_src)
+        @presets.keys.inject({}) do |p_urls, p_key|
+          p_urls[p_key] = {
+            :width => @dst[p_key][:width].to_i,
+            :height => @dst[p_key][:height].to_i
+          }
+          p_urls[p_key][:src] = @dst[p_key][:url] if including_src
+          p_urls
+        end
+      end
+
       # set and genrate resized images
       def write_preset preset_key, preset
-        # Set dest path <basepath>/<preset_key>/<filename>-<digest><ext>
-        dst_dir = @dst[preset_key][:dir] = File.join(@dst[:basepath], preset_key)
-        dst_path = @dst[preset_key][:path] = File.join(dst_dir, @dst[:filename])
-        dst_baseurl = @dst[preset_key][:baseurl] = File.join(@dst[:baseurl], preset_key)
-        @dst[preset_key][:url] = File.join(dst_baseurl, @dst[:filename])
+        # Reading in Image again (from blob => no File-System reading again)
+        image = MiniMagick::Image.read(@src[:image_blob])
         
-        # Calculate preset dimensions
-        calculate_preset_dims(preset_key, preset)
+        #  If the destination directory doesn't exist, create it
+        FileUtils.mkdir_p(@dst[preset_key][:dir]) unless File.exist?(@dst[preset_key][:dir])
+                    
+        # Let people know their images are being generated
+        LOG.info "Generating #{@dst[preset_key][:path]}"
         
-        if !File.exists?(dst_path) || @regenerate_images
-          # Reading in Image again (from blob => no File-System reading again)
-          image = MiniMagick::Image.read(@src[:image_blob])
-          
-          #  If the destination directory doesn't exist, create it
-          FileUtils.mkdir_p(dst_dir) unless File.exist?(dst_dir)
-                      
-          # Let people know their images are being generated
-          LOG.info "Generating #{dst_path}"
-          
-          # Scale and crop
-          image.combine_options do |i|
-            i.resize "#{@dst[preset_key][:width]}x#{@dst[preset_key][:height]}^"
-            i.gravity "center"
-            i.quality @quality
-          end
-
-          # write new image file 
-          image.write dst_path
-          
-          # free memory
-          image.destroy!
-        else
-          LOG.info 'Nothing to generate all files are there yet!'
+        # Scale and crop
+        image.combine_options do |i|
+          i.resize "#{@dst[preset_key][:width]}x#{@dst[preset_key][:height]}^"
+          i.gravity "center"
+          i.quality @quality
         end
+
+        # write new image file 
+        image.write @dst[preset_key][:path]
+        
+        # free memory
+        image.destroy!
       end
       
       def calculate_preset_dims preset_key, preset
@@ -224,6 +229,15 @@ module Jekyll
         end
         
         LOG.warn "Warning:".yellow + " #{@src[:filename]} is smaller than the requested output file. It will be resized without upscaling." if undersize
+      end
+
+      # set dst path infos for given preset
+      def prepare_preset_dst preset_key, preset
+        # Set dest path <basepath>/<preset_key>/<filename>-<digest><ext>
+        @dst[preset_key][:dir] = File.join(@dst[:basepath], preset_key)
+        @dst[preset_key][:path] = File.join(@dst[preset_key][:dir], @dst[:filename])
+        @dst[preset_key][:baseurl] = File.join(@dst[:baseurl], preset_key)
+        @dst[preset_key][:url] = File.join(@dst[preset_key][:baseurl], @dst[:filename])
       end
     end
   end

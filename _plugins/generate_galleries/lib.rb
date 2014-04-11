@@ -4,6 +4,7 @@ require 'logger'
 
 require_relative './lib/gallery'
 require_relative './lib/image'
+require_relative './lib/processors'
 require_relative './lib/generator'
 
 # DEBUG

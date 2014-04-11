@@ -37,8 +37,7 @@
 #       width: 300                  
 #     large:
 #       width: 1400                 
-#   regenerate_images: false         # default: false
-#   generate_gallery: false          # default: false
+#   do: check_images                 # check_images|generate_data|generate_images|nothing
 #   dynamic_fill: false              # default: true
 #   pretty_json: true                # default: false
 #   quality: 100                     # default: value from config.yml
@@ -49,14 +48,11 @@
 #     first_chunk: <int>             # number of thumbs fetched initially (default 15)
 #
 # Notes to these Params:
-# - regenerate_images: generates all presets even if they are generated already
-# - generate_gallery: generate the json (Read in every Image) even if the number of 
-#                     Images didn't change
 # - dynamic_fill: when set to false all thumbs get rendered into the generated 
 #                 gallery page => no responsive thumbs (all devices get the same
 #                 thumbs)
 # - pretty_json: make the generated gallery json pretty
-# - gallery['min_col_width']: 
+# - opts['min_col_width']: 
 #   - int: pixels
 #   - hash: keys => mediaType as described in galleryjs responsive.adapter.js; 
 #           values => pixels

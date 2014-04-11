@@ -2,6 +2,8 @@ module Jekyll
   module GalleryGenerator
     class GalleryGenerator < Generator
         
+      include Processors
+
       priority :normal
       
       DEFAULTS = {
@@ -18,6 +20,7 @@ module Jekyll
           'large_pads' =>   { 'width' => 1024 }, 
           'large' =>        { 'width' => 1400 } 
         },
+        'do' => 'check_images', # check_images|generate_data|generate_images|nothing
         'quality' => 100,
         'opts' => {     # opts for gallery frontend
           'min_col_width' => {
@@ -30,7 +33,7 @@ module Jekyll
           'firstChunk' =>   15
         },
         'pretty_json' => false,
-        'dynamic_fill' => true 
+        'dynamic_fill' => true
       }
 
       def generate site
@@ -60,46 +63,25 @@ module Jekyll
               # Initialize Gallery object                   
               gallery = init_gallery(site, gp)
 
-              # Create Image objects
-              gallery.read_images
-          
+              # Logging
+              puts "Processing Gallery '#{gallery.project}' ..."
+
               # Check if gallery was processed yet (Set plugin)
               gallery.processed! if @galleries.keys.include?(gallery.project)
 
-# TODO: hier bin ich im Ablauf-Diagramm            
+              # Get Processor Strategy from gallery's config
+              strategy = map_processor(gallery)
 
-              # Try to read in JSON if Gallery was processed in this generation yet or
-              # because of the option to not generate it.
-              status = nil
-              if (gallery.processed? || 
-                (!gallery.generate? && File.exists?(json_path(site, gallery))))
-                # Read in Gallery from json, so that gallery_post can get
-                # created by Mr. Jekyll
-                begin
-                  gallery.read_json!(json_path(site, gallery))
-                  copy_json(site, gp, gallery)
-                  status = :nothing
-                rescue Exception => e
-                  LOG.info "JSON was corrupt, have to generate it again"
-                end
-              end
+              # Call the strategy
+              status = strategy.call(self, gallery)
 
-              # Gallery has to be created because previous block didn't work out
-              unless status == :nothing
-                # Generate resized images
-                gallery.generate_presets
-                # Write json
-                generate_json(site, gallery)
-                copy_json(site, gp, gallery)
-                # Stats
-                status = :generate_presets
-              end
-              # end gallery generate
+              # Copies json file to Jekyll site destination
+              copy_json(site, gp, gallery)
           
-              # Copy generated images
-              unless gallery.remote? || gallery.processed?
-                copy_images(site, gallery)
-                prevent_jekyll_from_removing_my_files(site, gallery)
+              # Sync generated images
+              unless gallery.processed? || gallery.remote?
+                sync_presets(site, gallery)
+                prevent_jekyll_from_removing_synced_presets(site, gallery)
               end # end copy images
 
               # Save log output for current gallery
@@ -137,6 +119,7 @@ module Jekyll
         config['pretty_json'] = gallery_opts.has_key?('pretty_json') ? 
           gallery_opts['pretty_json'] : 
           defaults['pretty_json']
+        config['do'] = gallery_opts['do'] || defaults['do']
         config['opts'] ||= {}
         if (gallery_opts['opts'])
           config['opts']['min_col_width'] = defaults['opts']['min_col_width'].merge(
@@ -162,10 +145,8 @@ module Jekyll
           # Build Options for Gallery constructor
           opts = merge_defaults @defaults, data['gallery_config']
 
-          # TODO auch in Defaults mit aufnehmen
+          # project (aka id of gallery post comes from it's slug)
           opts['project'] = data['gallery_config']['project'] || gallery_post.slug
-          opts['regenerate_images'] = data['gallery_config']['regenerate_images'] if data['gallery_config'].has_key?('regenerate_images')
-          opts['generate_gallery'] = data['gallery_config']['generate_gallery'] if data['gallery_config'].has_key?('generate_gallery')
 
           gallery = Jekyll::GalleryGenerator::Gallery.new(
             site, data['title'], opts
@@ -179,16 +160,38 @@ module Jekyll
         return gallery_post.data['gallery'] = gallery 
       end
 
-      # the path to the "cached" json file, it gets copied to the same path as the
-      # gallery post in #generate
-      def json_path site, gallery
-        filename = "#{gallery.project}.json"
-        filepath = File.join(gallery.dst[:basepath], '..' , filename)
+      # Asks the gallery for the processor action it has defined (with config 
+      # param ``do``) and maps it with a Processor Proc object.
+      def map_processor gallery
+        case gallery.processor_action
+        when 'nothing' then
+          NOTHING
+        when 'check_images' then
+          CHECK_IMAGES
+        when 'generate_data' then
+          GENERATE_DATA
+        when 'generate_images' then
+          GENERATE_IMAGES
+        else
+          raise Exception.new("Invalid action defined with 'do' commando '#{gallery.processor_action}'!")
+        end
+      end
+
+      # Tries to read in the json data of the given gallery and returns it's data
+      # Hash, or nil
+      def parse_json gallery
+        json_path = gallery.dst[:json_path]
+        io = IO.read(json_path)
+        begin
+          JSON.parse(io)
+        rescue
+          nil
+        end
       end
 
       # Generates a JSON File next to the gallery post html File. 
-      def generate_json site, gallery
-        filepath = json_path(site, gallery)
+      def write_json gallery
+        filepath = gallery.dst[:json_path]
         
         # Create Dst Directory if not existent yet
         filedir = File.dirname(filepath)
@@ -210,8 +213,10 @@ module Jekyll
         end
       end
       
+      # Copies json file to Jekyll site destination and creates a StaticFile for
+      # not beeing remoed in Jekyll's cleanup call.
       def copy_json site, gallery_post, gallery
-        src_filepath = json_path(site, gallery)
+        src_filepath = gallery.dst[:json_path]
         filename = File.basename src_filepath
 
         dst_filepath = File.join(site.dest, gallery_post.dir, filename)
@@ -229,12 +234,12 @@ module Jekyll
         )
       end
       
-      # Copy Images for all Images to Jekyll
+      # Sync Presets of Gallery to Jekyll site destination
       #
       # We copy by ourself, because the directory structure doesn't
       # fit into the schema with which Mr. Jekyll is used to work
       # (details in Jekyll::StaticFile)
-      def copy_images site, gallery
+      def sync_presets site, gallery
         dst_dir = File.join(site.dest, gallery.dst[:baseurl])
         FileUtils.mkdir_p(dst_dir) unless File.exists?(dst_dir)
         # Rsync Image Files to dst_dir
@@ -255,7 +260,7 @@ module Jekyll
 
       # Prevent the gallery directories and image files from beeing removed 
       # by Jekylls cleanup method
-      def prevent_jekyll_from_removing_my_files site, gallery
+      def prevent_jekyll_from_removing_synced_presets site, gallery
         # Workaround.... for issue: https://github.com/mojombo/jekyll/issues/1297
         # We Have to create a virtual static file in every subdirectory of 
         # gallery dst baseurl, else these directories are washed away by
@@ -310,7 +315,7 @@ module Jekyll
     # when writing the sitemap file.
     class StaticGalleryFile < Jekyll::StaticFile
       def write(dest)
-        super(dest) rescue ArgumentError
+        super(dest) rescue [ArgumentError, TypeError]
         true
       end
     end
