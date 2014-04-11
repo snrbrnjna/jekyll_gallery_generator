@@ -59,5 +59,5 @@
 
 
 
-require './_plugins/generate_galleries/lib'
+require_relative '../lib/jekyll_gallery_generator'
 

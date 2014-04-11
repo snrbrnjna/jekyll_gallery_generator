@@ -25,6 +25,7 @@ module.exports = function (grunt) {
           '_layouts/*.html',
           '_posts/**/*.{markdown,md}',
           '_plugins/**/*.rb',
+          'lib/**/*.rb',
           '_includes/**/*.{html}',
           'js/**/*.js',
           'css/**/*.*',

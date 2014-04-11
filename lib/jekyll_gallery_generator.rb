@@ -2,13 +2,13 @@ require 'fileutils'
 require 'json'
 require 'logger'
 
-require_relative './lib/gallery'
-require_relative './lib/image'
-require_relative './lib/processors'
-require_relative './lib/generator'
+require_relative './jekyll_gallery_generator/gallery'
+require_relative './jekyll_gallery_generator/image'
+require_relative './jekyll_gallery_generator/processors'
+require_relative './jekyll_gallery_generator/generator'
 
 # DEBUG
-require 'debugger'
+# require 'debugger'
 
 module Jekyll
   module GalleryGenerator
