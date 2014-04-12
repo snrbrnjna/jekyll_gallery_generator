@@ -4,4 +4,6 @@
 bower_components
 node_modules
 
+*.gem
+
 _site
