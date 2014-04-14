@@ -25,7 +25,7 @@ $ grunt serve
 
 ### Jekyll
 
-You need a gallery.html Layout File. 
+You need a [gallery.html](/_layouts/gallery.html) Layout File. 
 
 You need a [frontend](https://github.com/snrbrnjna/galleryjs) for the gallery to work... Good, that it works via bower.
 
