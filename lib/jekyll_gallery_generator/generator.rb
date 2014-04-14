@@ -8,11 +8,12 @@ module Jekyll
       
       DEFAULTS = {
         'src' => {
-          'basepath' => '_galleries/_fullsizes'
+          'basepath' => '_galleries/fullsizes'
         }, 
         'dst' => {
-          'basepath' => '_galleries/_generated',
-          'baseurl' =>  '/img/galleries'
+          'basepath' => '_galleries/generated',
+          'baseurl'  => '/img/galleries',
+          'metapath' => '_galleries/metadata'
         }, 
         'presets' => {
           'thumb' =>        { 'width' =>  450 },
@@ -69,13 +70,20 @@ module Jekyll
               # Check if gallery was processed yet (Set plugin)
               gallery.processed! if @galleries.keys.include?(gallery.project)
 
+              # Read in Image Metadata
+              gallery.image_meta_orig = parse_meta(gallery)
+
               # Get Processor Strategy from gallery's config
               strategy = map_processor(gallery)
 
               # Call the strategy
               status = strategy.call(self, gallery)
 
-              # Copies json file to Jekyll site destination
+              # Update Image Metadata File
+              write_meta(gallery)
+
+              # Saves Gallery JSON and copies file to Jekyll site destination
+              write_json(gallery)
               copy_json(site, gp, gallery)
           
               # Sync generated images
@@ -185,7 +193,7 @@ module Jekyll
       # Tries to read in the json data of the given gallery and returns it's data
       # Hash, or nil
       def parse_json gallery
-        json_path = gallery.dst['json_path']
+        json_path = gallery.dst['jsonpath']
         begin
           io = IO.read(json_path)
           JSON.parse(io)
@@ -196,7 +204,7 @@ module Jekyll
 
       # Generates a JSON File next to the gallery post html File. 
       def write_json gallery
-        filepath = gallery.dst['json_path']
+        filepath = gallery.dst['jsonpath']
         
         # Create Dst Directory if not existent yet
         filedir = File.dirname(filepath)
@@ -221,7 +229,7 @@ module Jekyll
       # Copies json file to Jekyll site destination and creates a StaticFile for
       # not beeing remoed in Jekyll's cleanup call.
       def copy_json site, gallery_post, gallery
-        src_filepath = gallery.dst['json_path']
+        src_filepath = gallery.dst['jsonpath']
         filename = File.basename src_filepath
 
         dst_filepath = File.join(site.dest, gallery_post.dir, filename)
@@ -237,6 +245,30 @@ module Jekyll
         site.static_files << StaticGalleryFile.new(
           site, site.source, gallery_post.dir, filename
         )
+      end
+
+      def parse_meta gallery
+        metapath = gallery.dst['metapath']
+        begin
+          io = IO.read(metapath)
+          JSON.parse(io)
+        rescue
+          {}
+        end
+      end
+
+      def write_meta gallery
+        filepath = gallery.dst['metapath']
+
+        # Create Dst Directory if not existent yet
+        filedir = File.dirname(filepath)
+        FileUtils.mkdir_p(filedir) unless File.exists?(filedir)
+
+        # Write JSON File
+        File.open(filepath.gsub('.yaml', '.json'), 'w') do |io|
+          io.write(JSON.pretty_generate(gallery.image_meta))
+          io.close
+        end
       end
       
       # Sync Presets of Gallery to Jekyll site destination

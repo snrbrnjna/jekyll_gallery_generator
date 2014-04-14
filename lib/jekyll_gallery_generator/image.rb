@@ -13,6 +13,8 @@ module Jekyll
 
       attr_reader :src, :dst, :presets, :index, :digest, :exif, :quality
 
+      META_DEFAULT = {'title' => ''}
+
       # TODO: validate File-Extensions
       def initialize gallery, src_path, opts
         
@@ -59,6 +61,10 @@ module Jekyll
         @dst['filename'] = json_hash['filename']
         @src['ratio'] = json_hash['ratio']
       end
+
+      def set_meta(data)
+        @meta = META_DEFAULT.merge(data || {})
+      end
       
       def to_json(*a)
         begin
@@ -79,7 +85,8 @@ module Jekyll
           'filename'      => @dst['filename'],
           'orientation'   => @src['ratio'] <= 1 ? 'portrait' : 'landscape',
           'ratio'         => @src['ratio'],
-          'exif'          => @exif
+          'exif'          => @exif,
+          'meta'          => @meta
         }.merge(preset_urls)
       end
       

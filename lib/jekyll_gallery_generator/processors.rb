@@ -19,7 +19,6 @@ module Jekyll
         return :nothing
       else
         gallery.generate_presets(false)
-        generator.write_json(gallery)
         return :'check_images'
       end
     end
@@ -30,7 +29,6 @@ module Jekyll
 
       gallery.read_origs
       gallery.generate_presets(false)
-      generator.write_json(gallery)
       return :generate_data
     end
 
@@ -40,7 +38,6 @@ module Jekyll
       
       gallery.read_origs
       gallery.generate_presets(true)
-      generator.write_json(gallery)
       return :generate_images
     end
   end

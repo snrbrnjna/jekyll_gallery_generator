@@ -19,9 +19,9 @@ exclude:
 
 gallery: 
   src: 
-    basepath: _galleries/_fullsizes
+    basepath: _galleries/fullsizes
   dst: 
-    basepath: _galleries/_generated
+    basepath: _galleries/generated
     baseurl: /img/galleries
   quality: 85
   presets: 

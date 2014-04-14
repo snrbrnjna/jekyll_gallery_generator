@@ -8,9 +8,9 @@ module Jekyll
       
       EXT_PATTERN = '*.{JPG,JPEG,jpg,png}'
       
-      attr_accessor :dst
+      attr_accessor :dst, :image_meta_orig
       attr_reader :title, :project, :src, :presets, :quality, :images,
-        :processor_action, :opts, :pretty_json
+        :processor_action, :opts, :pretty_json, :image_meta
       
       def initialize site, title, config
         # Invaild Presets?
@@ -28,7 +28,8 @@ module Jekyll
         @dst = {
           'basepath' => File.join(@site_base, config['dst']['basepath'], @project),
           'baseurl' => File.join(config['dst']['baseurl'], @project),
-          'json_path' => File.join(@site_base, config['dst']['basepath'], "#{@project}.json")
+          'jsonpath' => File.join(@site_base, config['dst']['basepath'], "#{@project}.json"),
+          'metapath' => File.join(@site_base, config['dst']['metapath'], "#{@project}.meta.json")
         }
         @presets = set_presets(config['presets'])
         @quality = config['quality']
@@ -46,6 +47,10 @@ module Jekyll
         
         # options to configure the javascript Gallery
         @opts = config['opts']
+
+        # metadata for images
+        @image_meta = {}
+        @image_meta_orig = {}
       end
 
       # Create Image objects and checks if all presets are generated yet
@@ -56,7 +61,7 @@ module Jekyll
         # normalize filenames
         normalize_basenames!
         @src['image_paths'].each_with_index do |src_path, idx|
-          @images << img = Jekyll::GalleryGenerator::Image.new(self, src_path, 'index' => idx)
+          @images << Jekyll::GalleryGenerator::Image.new(self, src_path, 'index' => idx)
         end
       end
 
@@ -72,15 +77,18 @@ module Jekyll
         @images.all?(&:presets_generated?)
       end
 
-      # This works, after Gallery#read_origs and fills the Image
-      # instance vars for a correct Image#to_json, without having to
-      # run Gallery#generate_presets
+      # Fills the Image instance vars for a correct Image#to_json, without 
+      # having to run Gallery#generate_presets
       def read_json(json_data)
         @title = json_data['gallery']['title']
         set_presets(json_data['gallery']['presets'])
         json_data['gallery']['images'].each_with_index do |json_img, idx|
-          @images[idx] ||= Jekyll::GalleryGenerator::Image.new(self, '.not-known', 'index' => idx)
-          @images[json_img['index']].read_json(json_img)
+          # initiate a new Image object, if not already done
+          img = @images[json_img['index']] ||= Jekyll::GalleryGenerator::Image.new(self, '.not-known', 'index' => json_img['index'])
+          # set data on the image
+          img.read_json(json_img)
+          # set metadata on the image
+          @image_meta[img.digest] = img.set_meta(@image_meta_orig[img.digest])
         end
       end
 
@@ -90,7 +98,10 @@ module Jekyll
         progressbar = ProgressBar.create(:format => '%a |%b>>%i| %p%% %t', 
           :total => @images.size)
         @images.each do |img|
+          # generate presets for the image
           img.generate_presets(force)
+          # set metadata on the image
+          @image_meta[img.digest] = img.set_meta(@image_meta_orig[img.digest])
           progressbar.increment
         end
       end
