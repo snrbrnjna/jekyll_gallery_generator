@@ -1,8 +1,10 @@
 name: Jekyll Gallery Generator
+
+permalink: none
+
 markdown: redcarpet
 pygments: true
 
-permalink: none
 
 exclude:
   - Gemfile

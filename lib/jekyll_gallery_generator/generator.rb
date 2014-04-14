@@ -185,7 +185,7 @@ module Jekyll
       # Tries to read in the json data of the given gallery and returns it's data
       # Hash, or nil
       def parse_json gallery
-        json_path = gallery.dst[:json_path]
+        json_path = gallery.dst['json_path']
         begin
           io = IO.read(json_path)
           JSON.parse(io)
@@ -196,7 +196,7 @@ module Jekyll
 
       # Generates a JSON File next to the gallery post html File. 
       def write_json gallery
-        filepath = gallery.dst[:json_path]
+        filepath = gallery.dst['json_path']
         
         # Create Dst Directory if not existent yet
         filedir = File.dirname(filepath)
@@ -221,7 +221,7 @@ module Jekyll
       # Copies json file to Jekyll site destination and creates a StaticFile for
       # not beeing remoed in Jekyll's cleanup call.
       def copy_json site, gallery_post, gallery
-        src_filepath = gallery.dst[:json_path]
+        src_filepath = gallery.dst['json_path']
         filename = File.basename src_filepath
 
         dst_filepath = File.join(site.dest, gallery_post.dir, filename)
@@ -245,7 +245,7 @@ module Jekyll
       # fit into the schema with which Mr. Jekyll is used to work
       # (details in Jekyll::StaticFile)
       def sync_presets site, gallery
-        dst_dir = File.join(site.dest, gallery.dst[:baseurl])
+        dst_dir = File.join(site.dest, gallery.dst['baseurl'])
         FileUtils.mkdir_p(dst_dir) unless File.exists?(dst_dir)
         # Rsync Image Files to dst_dir
         rsync_options = [
@@ -257,7 +257,7 @@ module Jekyll
           '--exclude=.DS_Store',
           '--human-readable' # for debugging, combine with --verbose --progress'
         ]
-        rsync_call = "rsync #{gallery.dst[:basepath]}/ #{dst_dir}/ #{rsync_options.join(' ')}"
+        rsync_call = "rsync #{gallery.dst['basepath']}/ #{dst_dir}/ #{rsync_options.join(' ')}"
         unless system(rsync_call)
           warn 'ERROR: '.red + "Error when copying images! Call '#{rsync_call}' returned with exit code #{$?.exitstatus}"
         end
@@ -270,7 +270,7 @@ module Jekyll
         # We Have to create a virtual static file in every subdirectory of 
         # gallery dst baseurl, else these directories are washed away by
         # Jekylls cleanup method...
-        path_comps = gallery.dst[:baseurl].split(File::SEPARATOR)
+        path_comps = gallery.dst['baseurl'].split(File::SEPARATOR)
         path_comps.each_with_index do |path_comp, idx|
           site.static_files << StaticGalleryFile.new(
             site, '', File.join(path_comps[0, idx+1]), 'keepme'
@@ -279,11 +279,11 @@ module Jekyll
 
         # Prevent the image files from beeing removed again by 
         # Jekylls cleanup method
-        site.keep_files << gallery.dst[:baseurl] unless site.keep_files.include?(gallery.dst[:baseurl])
+        site.keep_files << gallery.dst['baseurl'] unless site.keep_files.include?(gallery.dst['baseurl'])
         gallery.images.each do |img|
           img.presets.each_key do |preset_key|
             site.static_files << StaticGalleryFile.new(
-              site, '', img.dst[preset_key][:baseurl], img.dst[:filename]
+              site, '', img.dst[preset_key]['baseurl'], img.dst['filename']
             )
           end
         end

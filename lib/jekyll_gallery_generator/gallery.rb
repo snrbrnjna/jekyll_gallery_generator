@@ -23,18 +23,18 @@ module Jekyll
         @title = title
         @project = config['project']
         @src = {
-          :basepath => File.join(@site_base, config['src']['basepath'], @project)
+          'basepath' => File.join(@site_base, config['src']['basepath'], @project)
         }
         @dst = {
-          :basepath => File.join(@site_base, config['dst']['basepath'], @project),
-          :baseurl => File.join(config['dst']['baseurl'], @project),
-          :json_path => File.join(@site_base, config['dst']['basepath'], "#{@project}.json")
+          'basepath' => File.join(@site_base, config['dst']['basepath'], @project),
+          'baseurl' => File.join(config['dst']['baseurl'], @project),
+          'json_path' => File.join(@site_base, config['dst']['basepath'], "#{@project}.json")
         }
         @presets = set_presets(config['presets'])
         @quality = config['quality']
         
         # prepare other instance vars
-        @src[:image_paths] = []
+        @src['image_paths'] = []
         @images = []
         @size = 0 # filesize
         
@@ -50,12 +50,12 @@ module Jekyll
 
       # Create Image objects and checks if all presets are generated yet
       def read_origs
-        raise "Directory with fullsize images doesn't exist: #{@src[:basepath]}" unless Dir.exists?(@src[:basepath])
+        raise "Directory with fullsize images doesn't exist: #{@src['basepath']}" unless Dir.exists?(@src['basepath'])
         # Read in sources
-        @src[:image_paths] = Dir[File.join(@src[:basepath], EXT_PATTERN)]
+        @src['image_paths'] = Dir[File.join(@src['basepath'], EXT_PATTERN)]
         # normalize filenames
         normalize_basenames!
-        @src[:image_paths].each_with_index do |src_path, idx|
+        @src['image_paths'].each_with_index do |src_path, idx|
           @images << img = Jekyll::GalleryGenerator::Image.new(self, src_path, 'index' => idx)
         end
       end
@@ -66,7 +66,7 @@ module Jekyll
         # compare number of files and filenames
         @images.size == json_data['gallery']['images'].size &&
         # compare filenames (filenames in json which come with digest as a postfix)
-        @images.map{|img| img.src[:filename]} == json_data['gallery']['images'].map do |image_json|
+        @images.map{|img| img.src['filename']} == json_data['gallery']['images'].map do |image_json|
           image_json['filename'].gsub("-#{image_json['digest']}", '')
         end &&
         @images.all?(&:presets_generated?)
@@ -126,13 +126,13 @@ module Jekyll
       end
 
       def remote?
-        @dst[:baseurl].start_with?('http://', 'https://')
+        @dst['baseurl'].start_with?('http://', 'https://')
       end
       
       def size
         if @size == 0
           @presets.each do |p_key, preset|
-            dirname = File.join(@dst[:basepath], p_key)
+            dirname = File.join(@dst['basepath'], p_key)
             images = Dir.glob(File.join(dirname, '*'))
             summed_size = 0
             images.each do |img|
@@ -167,17 +167,17 @@ module Jekyll
       def set_presets(presets)
         @presets = presets
         @presets.each do |p_key, preset|
-          preset[:baseurl] = File.join(@dst[:baseurl], p_key)
+          preset['baseurl'] = File.join(@dst['baseurl'], p_key)
         end
       end
 
       # Renames src Files if they have spaces in the Filename or if its
       # starts with an underscore, so that jekyll won't copy them.
       #
-      # To exclude the generated files from uploading prefix the dest[:base_dir]
+      # To exclude the generated files from uploading prefix the dest['base_dir']
       # with an underscore.
       def normalize_basenames!
-        @src[:image_paths].map! do |path|
+        @src['image_paths'].map! do |path|
           dirname = File.dirname(path)
           basename = File.basename(path)
           basename.gsub!(/&|;|,|\s/, '_')
