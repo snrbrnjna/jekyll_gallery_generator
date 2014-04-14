@@ -247,6 +247,7 @@ module Jekyll
         )
       end
 
+      # Read in Metadata File for given gallery
       def parse_meta gallery
         metapath = gallery.dst['metapath']
         begin
@@ -257,6 +258,7 @@ module Jekyll
         end
       end
 
+      # Write Image Metadata of given gallery to its metafile.
       def write_meta gallery
         filepath = gallery.dst['metapath']
 
