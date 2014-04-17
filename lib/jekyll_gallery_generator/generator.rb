@@ -131,9 +131,13 @@ module Jekyll
           config['do'] = gallery_opts['do'] || defaults['do']
           config['opts'] ||= {}
           if (gallery_opts['opts'])
-            config['opts']['min_col_width'] = defaults['opts']['min_col_width'].merge(
-              gallery_opts['opts']['min_col_width'] || {}
-            )
+            if gallery_opts['opts']['min_col_width'].is_a?(Integer)
+              config['opts']['min_col_width'] = gallery_opts['opts']['min_col_width']
+            else
+              config['opts']['min_col_width'] = defaults['opts']['min_col_width'].merge(
+                gallery_opts['opts']['min_col_width'] || {}
+              )
+            end
             config['opts']['gutter_width'] = gallery_opts['opts']['gutter_width'] || 
               defaults['opts']['gutter_width']
             config['opts']['chunk_size'] = gallery_opts['opts']['chunk_size'] || 
