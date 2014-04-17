@@ -29,9 +29,9 @@ module Jekyll
             'pad' =>      320,
             'phone' =>    300
           },
-          'gutterWidth' =>   3,
-          'chunkSize' =>     8,
-          'firstChunk' =>   15
+          'gutter_width' =>   3,
+          'chunk_size' =>     8,
+          'first_chunk' =>   15
         },
         'pretty_json' => false,
         'dynamic_fill' => true
@@ -140,6 +140,8 @@ module Jekyll
               defaults['opts']['chunk_size']
             config['opts']['first_chunk'] = gallery_opts['opts']['first_chunk'] || 
               defaults['opts']['first_chunk']
+          else
+            config['opts'] = defaults['opts']
           end
           return config
         else
