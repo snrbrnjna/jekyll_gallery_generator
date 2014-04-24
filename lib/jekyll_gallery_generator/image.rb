@@ -13,7 +13,7 @@ module Jekyll
 
       attr_reader :src, :dst, :presets, :index, :digest, :exif, :quality
 
-      META_DEFAULT = {'title' => ''}
+      META_DEFAULT = {'title' => '', 'tags' => ''}
 
       # TODO: validate File-Extensions
       def initialize gallery, src_path, opts
@@ -63,7 +63,7 @@ module Jekyll
       end
 
       def set_meta(data)
-        @meta = META_DEFAULT.merge(data || {})
+        @meta = {'filename' => @src['filename']}.merge(META_DEFAULT).merge(data || {})
       end
       
       def to_json(*a)
