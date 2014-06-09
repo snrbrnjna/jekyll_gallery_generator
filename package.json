@@ -1,12 +1,11 @@
 {
-  "name": "maiwolf.com",
+  "name": "jekyll gallery generator",
   "version": "0.0.0",
-  "description": "maiwolf photography - photographers for advertising, fashion, people, portrait and beauty.",
+  "description": "jekyll gallery generator - a jekyll image gallery generator plugin.",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [
-    "maiwolf.com",
     "photographers",
     "galleryjs"
   ],

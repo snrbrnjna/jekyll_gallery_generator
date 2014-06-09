@@ -1,11 +1,11 @@
 {
-  "name": "maiwolf.com",
-  "version": "0.0.0",
+  "name": "jekyll gallery generator",
+  "version": "0.4.0",
   "authors": [
     "Snr Brnjna <snr@brnjna.net>"
   ],
   "license": "MIT",
-  "homepage": "http://maiwolf.com",
+  "homepage": "https://github.com/snrbrnjna/jekyll_gallery_generator",
   "private": true,
   "ignore": [
     "**/.*",
