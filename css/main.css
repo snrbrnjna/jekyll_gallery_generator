@@ -36,6 +36,22 @@ ul, ol { padding-left: 40px; }
 
 /*****************************************************************************/
 /*
+/* Gallery Override
+/*
+/*****************************************************************************/
+.loading, 
+.stopper,
+.slider .photo {
+  background-image: url("/img/preloader-50.gif");
+}
+[data-gal-selection] span.selector {
+  background-image: url(/img/add_button01_sprite.png);
+}
+[data-gal-selection="false"] span.selector {
+  background-image: none;
+}
+/*****************************************************************************/
+/*
 /* Home
 /*
 /*****************************************************************************/
