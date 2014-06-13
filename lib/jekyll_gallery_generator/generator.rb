@@ -161,14 +161,14 @@ module Jekyll
         # Create Gallery instance
         begin
           # Build Options for Gallery constructor
-          opts = merge_defaults @defaults, data['gallery_config']
+          config = merge_defaults @defaults, data['gallery_config']
 
           # project (aka id of gallery post comes from it's slug)
-          opts['project'] = (data['gallery_config'] && data['gallery_config']['project']) || 
+          config['project'] = (data['gallery_config'] && data['gallery_config']['project']) || 
             gallery_post.slug
 
           gallery = Jekyll::GalleryGenerator::Gallery.new(
-            site, data['title'], opts
+            site, data['title'], gallery_post, config
           )
         rescue ArgumentError => error
           warn 'ERROR: '.red + error.message
@@ -208,7 +208,7 @@ module Jekyll
         end
       end
 
-      # Generates a JSON File next to the gallery post html File. 
+      # Generates a JSON File for the given gallery.
       def write_json gallery
         filepath = gallery.dst['jsonpath']
         
@@ -239,9 +239,7 @@ module Jekyll
         filename = File.basename src_filepath
 
         # Get destination directory
-        base_dir = gallery_post.url
-        base_dir = File.dirname(base_dir) if base_dir[/\.html$/]
-        dst_dir = File.join(site.dest, base_dir)
+        dst_dir = File.join(site.dest, gallery.dst['post_basepath'])
 
         # Mkdir if destination dir doesn't exist yet
         FileUtils.mkdir_p(dst_dir) unless File.exists?(dst_dir)
@@ -251,7 +249,7 @@ module Jekyll
 
         # Prevent Jekyll from erasing our generated files
         site.static_files << StaticGalleryFile.new(
-          site, site.source, base_dir, filename
+          site, site.source, gallery.dst['post_basepath'], filename
         )
       end
 

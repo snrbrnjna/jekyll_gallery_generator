@@ -12,7 +12,7 @@ module Jekyll
       attr_reader :title, :project, :src, :presets, :quality, :images,
         :processor_action, :opts, :pretty_json, :image_meta
       
-      def initialize site, title, config
+      def initialize site, title, post, config
         # Invaild Presets?
         raise ArgumentError.new(
           "Gallery #{config['project']} can't be created because of invalid presets: #{config['presets']}"
@@ -22,6 +22,11 @@ module Jekyll
         @site_base = site.source
         @title = title
         @project = config['project']
+
+        # Get basepath of gallery post
+        post_basepath = post.url
+        post_basepath = File.dirname(post_basepath) if post_basepath[/\.html$/]
+
         @src = {
           'basepath' => File.join(@site_base, config['src']['basepath'], @project)
         }
@@ -29,7 +34,8 @@ module Jekyll
           'basepath' => File.join(@site_base, config['dst']['basepath'], @project),
           'baseurl' => File.join(config['dst']['baseurl'], @project),
           'jsonpath' => File.join(@site_base, config['dst']['basepath'], "#{@project}.json"),
-          'metapath' => File.join(@site_base, config['dst']['metapath'], "#{@project}.meta.json")
+          'metapath' => File.join(@site_base, config['dst']['metapath'], "#{@project}.meta.json"),
+          'post_basepath' => post_basepath
         }
         @presets = set_presets(config['presets'])
         @quality = config['quality']
