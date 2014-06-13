@@ -233,23 +233,25 @@ module Jekyll
       end
       
       # Copies json file to Jekyll site destination and creates a StaticFile for
-      # not beeing remoed in Jekyll's cleanup call.
+      # not beeing removed in Jekyll's cleanup call.
       def copy_json site, gallery_post, gallery
         src_filepath = gallery.dst['jsonpath']
         filename = File.basename src_filepath
 
-        dst_filepath = File.join(site.dest, gallery_post.dir, filename)
-        
+        # Get destination directory
+        base_dir = gallery_post.url
+        base_dir = File.dirname(base_dir) if base_dir[/\.html$/]
+        dst_dir = File.join(site.dest, base_dir)
+
         # Mkdir if destination dir doesn't exist yet
-        dst_dir = File.dirname dst_filepath
         FileUtils.mkdir_p(dst_dir) unless File.exists?(dst_dir)
         
         # Copy json file
-        FileUtils.cp(src_filepath, dst_filepath)
-        
+        FileUtils.cp(src_filepath, File.join(dst_dir, filename))
+
         # Prevent Jekyll from erasing our generated files
         site.static_files << StaticGalleryFile.new(
-          site, site.source, gallery_post.dir, filename
+          site, site.source, base_dir, filename
         )
       end
 

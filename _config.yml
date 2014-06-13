@@ -1,6 +1,6 @@
 name: Jekyll Gallery Generator
 
-permalink: none
+permalink: /:title
 
 markdown: redcarpet
 pygments: true
