@@ -6,6 +6,7 @@ require_relative './jekyll_gallery_generator/gallery'
 require_relative './jekyll_gallery_generator/image'
 require_relative './jekyll_gallery_generator/processors'
 require_relative './jekyll_gallery_generator/generator'
+require_relative './jekyll_gallery_generator/filter'
 
 # DEBUG
 # require 'debugger'
@@ -20,6 +21,9 @@ module Jekyll
     FileUtils.mkdir_p File.dirname(logfile) unless File.exists?(File.dirname(logfile))
     # maximum of 10MB and 10 old versions kept
     LOG = Logger.new(logfile, 10, 1024000)
+
+    # register Filters
+    Liquid::Template.register_filter(Jekyll::GalleryGenerator::Filter)
 
   end
 end

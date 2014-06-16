@@ -34,7 +34,8 @@ module Jekyll
           'first_chunk' =>   15
         },
         'pretty_json' => false,
-        'dynamic_fill' => true
+        'dynamic_fill' => true,
+        'image_pages' => false
       }
 
       def generate site
@@ -78,6 +79,16 @@ module Jekyll
 
               # Call the strategy
               status = strategy.call(self, gallery)
+
+              # Generate Redirect Posts for Gallery images
+              gallery.images.each do |image|
+                begin
+                  image.generate_redirect_page(site, gallery)
+                rescue => error
+                  warn 'ERROR - could not generate redirect pages for images: '.red + error.message
+                  break
+                end
+              end if gallery.image_pages
 
               # Update Image Metadata File
               write_meta(gallery)
@@ -128,6 +139,9 @@ module Jekyll
           config['pretty_json'] = gallery_opts.has_key?('pretty_json') ? 
             gallery_opts['pretty_json'] : 
             defaults['pretty_json']
+          config['image_pages'] = gallery_opts.has_key?('image_pages') ?
+            gallery_opts['image_pages'] :
+            defaults['image_pages']
           config['do'] = gallery_opts['do'] || defaults['do']
           config['opts'] ||= {}
           if (gallery_opts['opts'])
@@ -239,7 +253,7 @@ module Jekyll
         filename = File.basename src_filepath
 
         # Get destination directory
-        dst_dir = File.join(site.dest, gallery.dst['post_basepath'])
+        dst_dir = File.join(site.dest, gallery.post_basepath)
 
         # Mkdir if destination dir doesn't exist yet
         FileUtils.mkdir_p(dst_dir) unless File.exists?(dst_dir)
@@ -249,7 +263,7 @@ module Jekyll
 
         # Prevent Jekyll from erasing our generated files
         site.static_files << StaticGalleryFile.new(
-          site, site.source, gallery.dst['post_basepath'], filename
+          site, site.source, gallery.post_basepath, filename
         )
       end
 

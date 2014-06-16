@@ -9,8 +9,9 @@ module Jekyll
       EXT_PATTERN = '*.{JPG,JPEG,jpg,png}'
       
       attr_accessor :dst, :image_meta_orig
-      attr_reader :title, :project, :src, :presets, :quality, :images,
-        :processor_action, :opts, :pretty_json, :image_meta
+      attr_reader :title, :project, :post_path, :post_basepath, :src, :presets,
+        :quality, :images, :processor_action, :opts, :pretty_json, :image_meta,
+        :image_pages
       
       def initialize site, title, post, config
         # Invaild Presets?
@@ -23,9 +24,10 @@ module Jekyll
         @title = title
         @project = config['project']
 
-        # Get basepath of gallery post
-        post_basepath = post.url
-        post_basepath = File.dirname(post_basepath) if post_basepath[/\.html$/]
+        # Get path and basepath of gallery post
+        @post_path = post.url
+        # post.url returns "index-page" paths always without the trailing index.html
+        @post_basepath = @post_path[/\.html$/] ? File.dirname(@post_path) : @post_path
 
         @src = {
           'basepath' => File.join(@site_base, config['src']['basepath'], @project)
@@ -34,8 +36,7 @@ module Jekyll
           'basepath' => File.join(@site_base, config['dst']['basepath'], @project),
           'baseurl' => File.join(config['dst']['baseurl'], @project),
           'jsonpath' => File.join(@site_base, config['dst']['basepath'], "#{@project}.json"),
-          'metapath' => File.join(@site_base, config['dst']['metapath'], "#{@project}.meta.json"),
-          'post_basepath' => post_basepath
+          'metapath' => File.join(@site_base, config['dst']['metapath'], "#{@project}.meta.json")
         }
         @presets = set_presets(config['presets'])
         @quality = config['quality']
@@ -49,6 +50,8 @@ module Jekyll
         
         @dynamic = config['dynamic_fill']
         @pretty_json = config['pretty_json']
+        @image_pages = config['image_pages']
+
         @processed = false
         
         # options to configure the javascript Gallery
@@ -126,9 +129,12 @@ module Jekyll
         {
           'title'         => @title,
           'project'       => @project,
+          'post_path'     => @post_path,
+          'post_basepath' => @post_basepath,
           'presets'       => @presets,
           'imageCount'    => @images.size,
           'dynamic'       => @dynamic,
+          'image_pages'   => @image_pages,
           'opts'          => @opts,
           'images'        => @images
         }

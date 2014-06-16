@@ -22,6 +22,7 @@ Gem::Specification.new do |s|
   
   s.files       = [
     'lib/jekyll_gallery_generator.rb',
+    'lib/jekyll_gallery_generator/filter.rb',
     'lib/jekyll_gallery_generator/gallery.rb',
     'lib/jekyll_gallery_generator/generator.rb',
     'lib/jekyll_gallery_generator/image.rb',

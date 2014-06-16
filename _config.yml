@@ -1,5 +1,6 @@
 name: Jekyll Gallery Generator
 
+url: http://0.0.0.0:9000
 permalink: /:title
 
 markdown: redcarpet
@@ -41,3 +42,4 @@ gallery:
     gutter_width: 3
     chunk_size: 8
     first_chunk: 15
+  image_pages: false

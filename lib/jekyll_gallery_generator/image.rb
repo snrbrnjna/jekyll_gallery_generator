@@ -4,6 +4,31 @@ require 'exifr' # read exif metadata for orientation et al
 
 module Jekyll
   module GalleryGenerator
+
+    # Image Page written next to the Gallery posts.
+    class ImagePage < Page
+      def initialize(site, base, dir, image, gallery)
+        @site = site
+        @base = base
+        @dir = dir
+        @name = "index.html"
+
+        # do the stuff jekyll needs to do for pages
+        self.process(@name)
+
+        # check the image page layout
+        layout_path = File.join(base, '_layouts', 'gallery_image.html')
+        raise "File not found: #{layout_path}" unless File.exists?(layout_path)
+
+        # read in the layout yaml front matter
+        self.read_yaml(File.dirname(layout_path), File.basename(layout_path))
+
+        # pass image and gallery hashes for liquid usage in the layout file
+        self.data['image'] = image
+        self.data['gallery'] = gallery
+      end
+    end
+
     # TODO: :dst dokumentieren, bzw über to_<formats> aufrufe unterschiedliche daten 
     #  an unterschiedliche zielformate binden:
     #  - to_liquid für nur im template relevante attribute
@@ -45,6 +70,10 @@ module Jekyll
         @index = opts['index']
       end
 
+      def title
+        @title ||= @meta['title'] || meta['filename']
+      end
+
       # Fills the instance vars for a correct Image#to_json, without having to 
       # run Image#generate_presets
       # CAUTION: #presets have to be set yet! Leaves #src Hash as is.
@@ -79,10 +108,11 @@ module Jekyll
         # BUGFIX: some cameras give NaN values into their exif-data
         # => don't save these keys in json
         @exif && @exif.reject!{|k,v| v.respond_to?('nan?') && v.nan? }
-        json = {
+        {
           'digest'        => @digest,
           'index'         => @index,
           'filename'      => @dst['filename'],
+          'title'         => self.title,
           'orientation'   => @src['ratio'] <= 1 ? 'portrait' : 'landscape',
           'ratio'         => @src['ratio'],
           'exif'          => @exif,
@@ -127,6 +157,20 @@ module Jekyll
         # Free memory!
         image.destroy!
         @src.delete 'image_blob'
+      end
+
+      # Generate a Html Page for the Image with metadata for sharing the Image on
+      # Facebook or Twitter, etc. The page includes a JS-statement, which redirects 
+      # the Browser to the Gallery Post with the image opened in the slider.
+      def generate_redirect_page site, gallery
+        basedir = gallery.post_path.gsub(/\.html$/, '')
+        site.pages << ImagePage.new(
+          site, 
+          site.source, 
+          File.join(basedir, @digest), 
+          self,
+          gallery
+        )
       end
       
     private
@@ -173,8 +217,8 @@ module Jekyll
       def get_preset_attrs(including_src)
         @presets.keys.inject({}) do |p_urls, p_key|
           p_urls[p_key] = {
-            'width' => @dst[p_key]['width'].to_i,
-            'height' => @dst[p_key]['height'].to_i
+            'width'   => @dst[p_key]['width'].to_i,
+            'height'  => @dst[p_key]['height'].to_i
           }
           p_urls[p_key]['src'] = @dst[p_key]['url'] if including_src
           p_urls
