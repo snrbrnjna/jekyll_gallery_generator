@@ -19,7 +19,7 @@ module Jekyll
         image_baseurl = gallery['presets']['large']['baseurl']
         if (!image_baseurl.match(/http:\/\/|https:\/\/|^\//)) # relative path
           image_baseurl = (
-            Pathname.new(gallery['post_basepath']) + image_baseurl
+            Pathname.new(gallery['postBasepath']) + image_baseurl
           ).cleanpath.to_s
         end
         image_baseurl = qualified_url(image_baseurl)
@@ -33,7 +33,7 @@ module Jekyll
 
       # Get the url of the Gallery Image to redirect to
       def image_redirect_url gallery, image
-        "#{qualified_url(gallery['post_path'])}#!#{image['digest']}"
+        "#{qualified_url(gallery['postPath'])}#!#{image['digest']}"
       end
 
       def qualified_url baseurl

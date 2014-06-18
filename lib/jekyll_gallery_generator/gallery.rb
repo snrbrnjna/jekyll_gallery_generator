@@ -9,9 +9,9 @@ module Jekyll
       EXT_PATTERN = '*.{JPG,JPEG,jpg,png}'
       
       attr_accessor :dst, :image_meta_orig
-      attr_reader :title, :project, :post_path, :post_basepath, :src, :presets,
-        :quality, :images, :processor_action, :opts, :pretty_json, :image_meta,
-        :image_pages
+      attr_reader :title, :project, :post_path, :post_basepath, :post_baseurl,
+        :src, :presets, :quality, :images, :processor_action, :opts,
+        :pretty_json, :image_meta, :image_pages
       
       def initialize site, title, post, config
         # Invaild Presets?
@@ -24,10 +24,11 @@ module Jekyll
         @title = title
         @project = config['project']
 
-        # Get path and basepath of gallery post
+        # Get path, basepath and url of gallery post
         @post_path = post.url
         # post.url returns "index-page" paths always without the trailing index.html
         @post_basepath = @post_path[/\.html$/] ? File.dirname(@post_path) : @post_path
+        @post_baseurl = site.config['url']
 
         @src = {
           'basepath' => File.join(@site_base, config['src']['basepath'], @project)
@@ -129,8 +130,9 @@ module Jekyll
         {
           'title'         => @title,
           'project'       => @project,
-          'post_path'     => @post_path,
-          'post_basepath' => @post_basepath,
+          'postPath'      => @post_path,
+          'postBasepath'  => @post_basepath,
+          'postBaseurl'   => @post_baseurl,
           'presets'       => @presets,
           'imageCount'    => @images.size,
           'dynamic'       => @dynamic,
