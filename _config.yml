@@ -1,4 +1,5 @@
 name: Jekyll Gallery Generator
+description: A Jekyll Plugin for nice responsive galleries.
 
 url: http://0.0.0.0:9000
 permalink: /:title
