@@ -46,15 +46,21 @@ gallery#image_pages
 
 ## changelog
 
-### Jun, 14:
+### Jun 16, 14:
 - [X] FEAT(image_pages): "Permalinks" für Sharing
     + [X] Blank Page mit Bild und Metadata für 
         - [X] Facebook
     + [X] JS Redirect zu Galerie mit Slider offen.
+  API-BREAKING you have to change your config (posts or site-wide) to use that feature (``image_pages: true``). Then you have to create a ``gallery_image.html`` layout file.
+
+# Jun, 14
 - [X] BUG: json file url klappt nur, wenn jekyll permalinks config is set to ``permalinks: none``
 - [X] BUG: Wenn keine opts im YFM angegeben: leere opts im json
 - [X] BUG: min_col_width als integer für alle devices klappt nicht.
 
+### Jun 11, 14:
+- [X] FEAT(galleryjs): update to v0.6.0.
+  API-BREAKING you have to upgrade to ~0.6 in your bower.json and regenerate old galler posts, if you want to use the new galleryjs.
 
 ### Apr 24, 14: v0.4.0  
 - [X] FIX: some stuff

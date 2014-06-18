@@ -1,7 +1,3 @@
----
-layout: default
----
-
 # Jekyll Gallery Generator
 
 A Jekyll Plugin for nice responsive galleries. Best used with [gallery.js](https://github.com/snrbrnjna/galleryjs).
