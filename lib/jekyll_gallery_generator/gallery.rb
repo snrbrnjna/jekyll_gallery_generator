@@ -136,7 +136,7 @@ module Jekyll
           'presets'       => @presets,
           'imageCount'    => @images.size,
           'dynamic'       => @dynamic,
-          'image_pages'   => @image_pages,
+          'imagePages'   => @image_pages,
           'opts'          => @opts,
           'images'        => @images
         }
