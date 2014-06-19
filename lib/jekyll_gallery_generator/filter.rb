@@ -28,7 +28,7 @@ module Jekyll
 
       # Get the calculated Image title
       def image_title gallery, image
-        if image['meta']['title']
+        if image['meta']['title'] && !image['meta']['title'].empty?
           "#{gallery['title']} - #{image['meta']['title']}"
         else
           "#{gallery['title']}"
