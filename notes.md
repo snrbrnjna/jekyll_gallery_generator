@@ -4,11 +4,10 @@ title: Notes
 ---
 
 ## mache!
+- [ ] FEAT: metadata für Gallery wie für Images
 - [ ] FEAT: "Permalinks" für Sharing
   + [ ] Blank Page mit Bild und Metadata für 
     - [ ] Twitter
-  + [ ] gallery.js mit image_pages Feature verknüpfen
-- [ ] FEAT: metadata für Galery wie für Images
 - [ ] REFACTOR: title in image json doppelt, filter json for redundant info => lightweight JSON
 - [ ] CHECK: klappt image_pages feature mit sets aus g.brnjna.net?
   + evtl Plan aushecken, wie Set plugin in dieses Projekt mit integriert oder gekoppelt werden kann!
@@ -46,7 +45,13 @@ gallery#image_pages
 
 ## changelog
 
-### Jun 16, 14:
+### Jun 18, 2014
+- [X] FIX(image_pages): Title in page: '-' wenn kein meta title
+
+### Jun 17, 2014
+- [X] FEAT(image_pages): gallery.js mit image_pages Feature verknüpfen
+
+### Jun 16, 2014
 - [X] FEAT(image_pages): "Permalinks" für Sharing
     + [X] Blank Page mit Bild und Metadata für 
         - [X] Facebook

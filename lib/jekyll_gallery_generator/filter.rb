@@ -28,7 +28,11 @@ module Jekyll
 
       # Get the calculated Image title
       def image_title gallery, image
-        "#{gallery['title']} - #{image['meta']['title']}"
+        if image['meta']['title']
+          "#{gallery['title']} - #{image['meta']['title']}"
+        else
+          "#{gallery['title']}"
+        end
       end
 
       # Get the url of the Gallery Image to redirect to
