@@ -8,7 +8,6 @@ title: Notes
 - [ ] FEAT: "Permalinks" für Sharing
   + [ ] Blank Page mit Bild und Metadata für 
     - [ ] Twitter
-- [ ] REFACTOR: title in image json doppelt, filter json for redundant info => lightweight JSON
 - [ ] CHECK: klappt image_pages feature mit sets aus g.brnjna.net?
   + evtl Plan aushecken, wie Set plugin in dieses Projekt mit integriert oder gekoppelt werden kann!
 - [ ] FEAT: exif data in yaml abklemmen (default: kein exif ins json).
@@ -47,6 +46,7 @@ gallery#image_pages
 
 ### Jun 18, 2014
 - [X] FIX(image_pages): Title in page: '-' wenn kein meta title
+- [X] REFACTOR(json): title meta datum was redundant in image json
 
 ### Jun 17, 2014
 - [X] FEAT(image_pages): gallery.js mit image_pages Feature verknüpfen

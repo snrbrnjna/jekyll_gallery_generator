@@ -112,7 +112,6 @@ module Jekyll
           'digest'        => @digest,
           'index'         => @index,
           'filename'      => @dst['filename'],
-          'title'         => self.title,
           'orientation'   => @src['ratio'] <= 1 ? 'portrait' : 'landscape',
           'ratio'         => @src['ratio'],
           'exif'          => @exif,
