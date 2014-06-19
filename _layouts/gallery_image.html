@@ -1,5 +1,6 @@
 {% assign image_url = page.gallery | image_url_large: page.image %}
 {% assign image_title = page.gallery | image_title: page.image %}
+{% assign gallery_description = page.gallery.meta['description'] || site.description %}
 {% assign image_redirect_url = page.gallery | image_redirect_url: page.image %}
 {% assign image_page_url = page.url | qualified_url %}
 
@@ -10,6 +11,7 @@
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <title>{{ image_title }}</title>
   <meta property="og:title" content="{{ image_title }}" />
+  <meta property="og:description" content="{{ gallery_description }}" />
   <meta property="og:url" content="{{ image_page_url }}" />
   <meta property="og:site_name" content="{{ site.name }}" />
   <meta property="og:image" content="{{ image_url }}" />
@@ -17,7 +19,7 @@
   <script type="text/javascript">
     // Redirect for "real user" with Browser
     var redirect_url = '{{ image_redirect_url }}';
-    // window.location.href = redirect_url;
+    window.location.href = redirect_url;
   </script>
 </head>
 <body>
@@ -26,12 +28,17 @@
   <h2>meta</h2>
   <p>Title:<br/>
   <code>{{ image_title }}</code></p>
+  <p>Description:<br/>
+  <code>{{ gallery_description }}</code></p>
   <p>Image-URL:<br/>
   <code>{{ image_url }}</code></p>
   <p>Redirect-To URL:<br/>
   <code>{{ image_redirect_url }}</code></p>
   <p>Redirect-Page URL:<br/>
   <code>{{ image_page_url }}</code></p>
+
+  <h2>raw gallery meta</h2>
+  {{ page.gallery_post }}
 
   <h2>image</h2>
   <img src="{{ image_url }}" />

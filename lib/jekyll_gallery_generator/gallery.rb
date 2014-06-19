@@ -7,9 +7,10 @@ module Jekyll
     class Gallery
       
       EXT_PATTERN = '*.{JPG,JPEG,jpg,png}'
+      POST_META_KEYS = %{title description categories tags author date}
       
       attr_accessor :dst, :image_meta_orig
-      attr_reader :title, :project, :post_path, :post_basepath, :post_baseurl,
+      attr_reader :title, :project, :meta, :post_path, :post_basepath, :post_baseurl,
         :src, :presets, :quality, :images, :processor_action, :opts,
         :pretty_json, :image_meta, :image_pages
       
@@ -22,6 +23,7 @@ module Jekyll
         # Fill instance vars
         @site_base = site.source
         @title = title
+        @meta = post.data.select {|k,v| POST_META_KEYS.include?(k)}
         @project = config['project']
 
         # Get path, basepath and url of gallery post
@@ -129,6 +131,7 @@ module Jekyll
       def to_h
         {
           'title'         => @title,
+          'meta'          => @meta,
           'project'       => @project,
           'postPath'      => @post_path,
           'postBasepath'  => @post_basepath,
