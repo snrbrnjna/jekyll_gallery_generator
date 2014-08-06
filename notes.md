@@ -1,16 +1,18 @@
 ---
-layout: page
+layout: default
 title: Notes
 ---
 
 ## mache!
 - [ ] FEAT: "Permalinks" für Sharing
-  + [ ] Blank Page mit Bild und Metadata für 
-    - [ ] Twitter
-- [ ] CHECK: klappt image_pages feature mit sets aus g.brnjna.net?
-  + evtl Plan aushecken, wie Set plugin in dieses Projekt mit integriert oder gekoppelt werden kann!
-- [ ] FEAT: exif data in yaml abklemmen (default: kein exif ins json).
+  + [ ] Blank Page mit Bild und Metadata für Twitter
+  + [ ] Metadata and Image for Gallery-Posts: erstes Bild, oder id eines Bildes 
+        für FB/Twitter meta
 - [ ] FEAT(jekyll): update to jekyll 2
+- [ ] CHECK: klappt image_pages feature mit sets aus g.brnjna.net?
+  + evtl Plan aushecken, wie Set plugin in dieses Projekt mit integriert oder 
+    gekoppelt werden kann!
+- [ ] FEAT: exif data in yaml abklemmen (default: kein exif ins json).
 
 ## merke!
 - grunt tasks:
@@ -43,6 +45,9 @@ gallery#post_basepath,
 gallery#image_pages
 
 ## changelog
+
+### Aug, 6, 2014
+- [X] FIX(minimagick): use symbols to access image props width and height
 
 ### Jun 18, 2014
 - [X] FIX(image_pages): Title in page: '-' wenn kein meta title
