@@ -176,6 +176,7 @@ module Jekyll
 
       # Reads in src image file and calculates and sets its attributes
       def read_src_image
+
         LOG.info "Reading in Image #{@src['path']} ..."
         image = MiniMagick::Image.open(@src['path'])
         # Save orig-Image-Blob for later use of orig Image
@@ -205,8 +206,8 @@ module Jekyll
           @exif = nil
         end
         
-        @src['width'] = image['width'].to_f
-        @src['height'] = image['height'].to_f
+        @src['width'] = (image[:width] || image['width']).to_f
+        @src['height'] = (image[:height] || image['height']).to_f
         @src['ratio'] = @src['width']/@src['height']
 
         return image
