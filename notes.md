@@ -46,7 +46,12 @@ gallery#image_pages
 
 ## changelog
 
-### Aug, 6, 2014
+### Aug 7, 2014
+- [X] Chore: Gemfile/gemspec dings:
+  - http://yehudakatz.com/2010/12/16/clarifying-the-roles-of-the-gemspec-and-gemfile/ 
+  - http://bundler.io/rubygems.html
+
+### Aug 6, 2014
 - [X] FIX(minimagick): use symbols to access image props width and height
 
 ### Jun 18, 2014
