@@ -45,6 +45,8 @@ gallery#post_basepath,
 gallery#image_pages
 
 ## changelog
+### Aug 8, 2014
+- [X] BUG: Generator: Imagesizes falsch in Report: der rechnet den durchschnitt aller Bilder, nicht der im JSON verwendeten...
 
 ### Aug 7, 2014
 - [X] Chore: Gemfile/gemspec dings:
