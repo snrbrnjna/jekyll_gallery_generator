@@ -161,7 +161,8 @@ module Jekyll
         if @size == 0
           @presets.each do |p_key, preset|
             dirname = File.join(@dst['basepath'], p_key)
-            images = Dir.glob(File.join(dirname, '*'))
+            image_ids = @images.map{|img| img.digest}.join(',')
+            images = Dir.glob(File.join(dirname, '*-{'+image_ids+'}.*'))
             summed_size = 0
             images.each do |img|
               summed_size += File.size(img)
